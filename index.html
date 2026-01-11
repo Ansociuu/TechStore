@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechStore AI - Premium Tech & Future AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&family=Noto+Sans:wght@300..700&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <style>
+        :root {
+            --font-main: 'Noto Sans', sans-serif;
+            --font-display: 'Space Grotesk', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-main);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .font-display {
+            font-family: var(--font-display);
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        @keyframes sparkle {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+
+            50% {
+                opacity: 0.8;
+                transform: scale(1.2) rotate(10deg);
+                filter: brightness(1.3) drop-shadow(0 0 5px rgba(19, 91, 236, 0.5));
+            }
+        }
+
+        .animate-sparkle {
+            animation: sparkle 3s ease-in-out infinite;
+        }
+
+        .ai-glass {
+            background: linear-gradient(135deg, rgba(19, 91, 236, 0.08) 0%, rgba(99, 102, 241, 0.03) 100%);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(19, 91, 236, 0.2);
+        }
+    </style>
+    <script>
+        window.tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: '#135bec',
+                            dark: '#0f4bc2',
+                            light: '#3b82f6'
+                        },
+                        background: {
+                            light: '#f8fafc',
+                            dark: '#0a0f1a'
+                        },
+                        surface: {
+                            dark: '#161d2b',
+                            border: '#242b3d'
+                        }
+                    },
+                    fontFamily: {
+                        display: ['Space Grotesk', 'sans-serif'],
+                        body: ['Noto Sans', 'sans-serif'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
+    "vite": "https://esm.sh/vite@^7.3.0",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
+  }
+}
+</script>
+    <link rel="stylesheet" href="/index.css">
+</head>
+
+<body
+    class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen selection:bg-primary selection:text-white">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+</body>
+
+</html>
