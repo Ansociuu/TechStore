@@ -2,9 +2,6 @@
 
 Chào mừng đến với **TechStore**, một dự án website thương mại điện tử hiện đại chuyên kinh doanh các sản phẩm công nghệ (Laptop, Điện thoại, Tablet, Phụ kiện). Dự án được xây dựng với trải nghiệm người dùng tối ưu, giao diện cao cấp và tích hợp **Trí tuệ nhân tạo (Gemini AI)** để hỗ trợ khách hàng mua sắm thông minh.
 
-<div align="center">
-  <img src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" alt="TechStore Banner" width="100%" />
-</div>
 
 ## ✨ Tính năng Nổi bật
 
@@ -70,4 +67,8 @@ frontend/
 │   ├── types.ts     # Các định nghĩa kiểu dữ liệu (TypeScript)
 │   └── App.tsx      # Component gốc và Routing
 └── ...
+<<<<<<< HEAD
 
+=======
+```
+>>>>>>> 2a3a3f85fa0f93bc77ebb174bb40218160484b67
