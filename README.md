@@ -66,8 +66,4 @@ frontend/
 │   ├── types.ts     # Các định nghĩa kiểu dữ liệu (TypeScript)
 │   └── App.tsx      # Component gốc và Routing
 └── ...
-<<<<<<< HEAD
 
-=======
-```
->>>>>>> 2a3a3f85fa0f93bc77ebb174bb40218160484b67
