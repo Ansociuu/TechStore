@@ -2,10 +2,37 @@
 import { Product, User } from './types';
 
 export const MOCK_USER: User = {
-  name: "Đạt",
+  name: "Đạt Nguyễn",
   email: "dat.nguyen@email.com",
   avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuDH4yVze214xUWhLjdxBSu9W7WULFBGY8F5vwYo3SW-iWPq_NJZH_dsXgkXCmVppnTO2vkXGBJKOxR5xkBQ4nK-DW18IcVYANHz_Veer973NOA927RGtLJ-8t5zIdszxzyn6jV-kSilQwB9k1S44Qmfa2hWWMBmlPFq63P4UI9K6qCPtdeQap60hWT2UjGsN-4tprL_wC1zxLjiT18R5UP6kiLSwdu6ryZzNxTrCW1Tjsyoeb_JAXm8Kd6vF6dKBkXiqHqiBKe_38s",
-  rank: 'Platinum'
+  rank: 'Platinum',
+  phone: "0987654321",
+  birthday: "1995-05-15",
+  gender: 'male',
+  addresses: [
+    {
+      id: 'addr-1',
+      name: 'Đạt Nguyễn',
+      phone: '0987654321',
+      province: 'TP. Hồ Chí Minh',
+      district: 'Quận 1',
+      ward: 'Phường Bến Nghé',
+      detail: '123 Lê Lợi',
+      isDefault: true,
+      type: 'home'
+    },
+    {
+      id: 'addr-2',
+      name: 'Nguyễn Văn A',
+      phone: '0123456789',
+      province: 'Hà Nội',
+      district: 'Cầu Giấy',
+      ward: 'Phường Dịch Vọng',
+      detail: 'Toà nhà ABC, tầng 10',
+      isDefault: false,
+      type: 'office'
+    }
+  ]
 };
 
 export const PRODUCTS: Product[] = [
@@ -31,7 +58,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: "p2",
-    name: "iPhone 17 Pro Max",
+    name: "iPhone 16 Pro Max",
     category: "Smartphone",
     price: 34990000,
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCmKo5j1aGHXWniKAl5-Q5LWbPx6bmGOzVsATX8J0Z6NsheJzE6dcFYhNjpOvMGKUG_wJUbaGgDYLiaprgPgk1WZyKkyAdOzEEjLlaefJFzvgg4wsp1vHdL-iQzOKL25VK-NqB-zCvznar3SYjXrKAH6TR18epn7y1C3ANV1wOa3AHd93hiJkiNNfBj9M4Gv6zo7X58E-mFGmiyW4eR_aRraPjUOXyrbhDXOjAMe6gl-MyY9CJkhkPTBYPnZw1xFTCGnAFUbqy-vcg",

@@ -70,10 +70,4 @@ frontend/
 │   ├── types.ts     # Các định nghĩa kiểu dữ liệu (TypeScript)
 │   └── App.tsx      # Component gốc và Routing
 └── ...
-```
 
-## 🤝 Đóng góp
-Mọi đóng góp đều được hoan nghênh! Nếu bạn có ý tưởng mới, hãy tạo Pull Request hoặc mở Issue để thảo luận.
-
----
-<p align="center">© 2026 TechStore | Developed by <b>Ansociuu</b></p>

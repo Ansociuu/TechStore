@@ -28,21 +28,21 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onN
             </div>
             <div className="space-y-4">
               <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-[0.9] tracking-tighter text-white font-display">
-                iPhone 17 <br className="hidden lg:block"/>Pro Max
+                iPhone 16 <br className="hidden lg:block" />Pro Max
               </h1>
               <p className="text-lg md:text-xl text-slate-300 font-light max-w-md leading-relaxed">
                 Titan Tự Nhiên. Chip A17 Pro mạnh mẽ nhất. Thiết kế nhẹ hơn, bền bỉ hơn.
               </p>
             </div>
             <div className="flex flex-wrap gap-4 pt-4">
-              <button 
+              <button
                 onClick={() => onProductSelect(featuredProduct)}
                 className="h-14 px-10 rounded-2xl bg-primary hover:bg-primary-dark text-white font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-primary/30 flex items-center gap-3 active:scale-95"
               >
                 Mua Ngay
                 <span className="material-symbols-outlined !text-[20px]">arrow_forward</span>
               </button>
-              <button 
+              <button
                 onClick={() => onProductSelect(featuredProduct)}
                 className="h-14 px-10 rounded-2xl bg-white/5 hover:bg-white/10 text-white font-black text-xs uppercase tracking-widest backdrop-blur-md transition-all border border-white/10 active:scale-95"
               >
@@ -50,12 +50,12 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onN
               </button>
             </div>
           </div>
-          
+
           {/* Image side - FIXED */}
           <div className="absolute right-0 top-0 w-full md:w-3/5 h-full overflow-hidden">
-            <img 
-              src={featuredProduct.image} 
-              alt="iPhone 17 Pro Max" 
+            <img
+              src={featuredProduct.image}
+              alt="iPhone 16 Pro Max"
               className="w-full h-full object-cover object-center transform transition-transform duration-[3s] group-hover:scale-105"
             />
             {/* Blend mask */}
@@ -97,7 +97,7 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onN
               <p className="text-sm text-slate-500 dark:text-slate-400 font-light mt-2 italic">Được AI cá nhân hóa theo sở thích của bạn</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={() => onNavigate(Page.LISTING)}
             className="px-8 py-3 rounded-xl border border-slate-200 dark:border-surface-border text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all hidden sm:block font-display"
           >
@@ -106,23 +106,23 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onN
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
           {trending.map(p => (
-            <ProductCard 
-              key={p.id} 
-              product={p} 
-              onSelect={onProductSelect} 
-              onAddToCart={onAddToCart} 
+            <ProductCard
+              key={p.id}
+              product={p}
+              onSelect={onProductSelect}
+              onAddToCart={onAddToCart}
             />
           ))}
         </div>
       </section>
 
       {/* Gaming Banner */}
-      <section 
+      <section
         onClick={() => onNavigate(Page.LISTING)}
         className="rounded-[2.5rem] overflow-hidden relative min-h-[300px] flex items-center group cursor-pointer shadow-2xl"
       >
-        <img 
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSbw3lpVij8ArFHQaJPWCaOm1L8RHIOeMh5Qf6-zf1cPZpC97AwlLLggHWwG2XGFJJvPIN4M9Mqbt4leBMljHCjynsL4VupG6FLIT779DzcUevcgSE5cmlQEFrJEPvbjOyq6lFnXTrjVxfp2ruVyfy6BwBmRQIjQybcEoZJqzjwscr209dRa4kJku9FNP3Rpr222ZEo4frxuqO_GR_hxtck1kus-2QHp-PKPsud4Q6NelpbLsHXWY032UG6Z-rZjIzbau0yEYNMZw" 
+        <img
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSbw3lpVij8ArFHQaJPWCaOm1L8RHIOeMh5Qf6-zf1cPZpC97AwlLLggHWwG2XGFJJvPIN4M9Mqbt4leBMljHCjynsL4VupG6FLIT779DzcUevcgSE5cmlQEFrJEPvbjOyq6lFnXTrjVxfp2ruVyfy6BwBmRQIjQybcEoZJqzjwscr209dRa4kJku9FNP3Rpr222ZEo4frxuqO_GR_hxtck1kus-2QHp-PKPsud4Q6NelpbLsHXWY032UG6Z-rZjIzbau0yEYNMZw"
           className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           alt="Gaming Setup"
         />
@@ -131,11 +131,11 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onN
           <span className="bg-primary text-white text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-widest">Gaming Gear</span>
           <h3 className="text-3xl md:text-5xl font-black text-white font-display max-w-xl leading-tight tracking-tighter">Nâng cấp góc máy, chiến game cực đỉnh</h3>
           <p className="text-slate-300 text-lg font-light mb-4">Giảm tới 30% cho các thiết bị gaming chuyên dụng.</p>
-          <button 
+          <button
             onClick={(e) => { e.stopPropagation(); onNavigate(Page.LISTING); }}
             className="px-10 py-4 bg-white text-slate-900 font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-primary hover:text-white transition-all shadow-2xl flex items-center gap-3"
           >
-            Khám phá ngay 
+            Khám phá ngay
             <span className="material-symbols-outlined !text-[18px]">arrow_forward</span>
           </button>
         </div>
@@ -151,11 +151,11 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onN
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {products.slice(4, 8).map(p => (
-            <ProductCard 
-              key={p.id} 
-              product={p} 
-              onSelect={onProductSelect} 
-              onAddToCart={onAddToCart} 
+            <ProductCard
+              key={p.id}
+              product={p}
+              onSelect={onProductSelect}
+              onAddToCart={onAddToCart}
             />
           ))}
         </div>

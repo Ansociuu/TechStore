@@ -40,12 +40,28 @@ export interface Order {
   paymentMethod: string;
 }
 
+export interface Address {
+  id: string;
+  name: string;
+  phone: string;
+  province: string;
+  district: string;
+  ward: string;
+  detail: string;
+  isDefault: boolean;
+  type: 'home' | 'office';
+}
+
 export interface User {
   name: string;
   email: string;
   avatar: string;
   rank: 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
   role?: 'user' | 'admin';
+  phone?: string;
+  birthday?: string;
+  gender?: 'male' | 'female' | 'other';
+  addresses?: Address[];
 }
 
 export interface Notification {

@@ -12,7 +12,7 @@ interface CheckoutProps {
 
 const Checkout: React.FC<CheckoutProps> = ({ cart, onNavigate, onAddToCart }) => {
   const [step, setStep] = useState(1); // 1: Delivery, 2: Payment, 3: Confirmation
-  
+
   const subtotal = useMemo(() => cart.reduce((acc, item) => acc + (item.price * item.quantity), 0), [cart]);
   const shipping = 0;
   const total = subtotal + shipping;
@@ -77,20 +77,20 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, onNavigate, onAddToCart }) =>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <label className="flex flex-col gap-2">
                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Họ và tên</span>
-                      <input required className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all" placeholder="Nguyễn Văn A" type="text"/>
+                      <input required className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all" placeholder="Nguyễn Văn A" type="text" />
                     </label>
                     <label className="flex flex-col gap-2">
                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Số điện thoại</span>
-                      <input required className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all" placeholder="0901234567" type="tel"/>
+                      <input required className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all" placeholder="0901234567" type="tel" />
                     </label>
                   </div>
                   <label className="flex flex-col gap-2">
                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Email (Để nhận hóa đơn)</span>
-                    <input required className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all" placeholder="example@email.com" type="email"/>
+                    <input required className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all" placeholder="example@email.com" type="email" />
                   </label>
                   <label className="flex flex-col gap-2">
                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Địa chỉ nhận hàng</span>
-                    <input required className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all" placeholder="Số nhà, tên đường, phường/xã..." type="text"/>
+                    <input required className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all" placeholder="Số nhà, tên đường, phường/xã..." type="text" />
                   </label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <label className="flex flex-col gap-2">
@@ -106,6 +106,9 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, onNavigate, onAddToCart }) =>
                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Quận / Huyện</span>
                       <select required className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none cursor-pointer">
                         <option disabled selected value="">Chọn Quận / Huyện</option>
+                        <option value="district1">Quận 1</option>
+                        <option value="district3">Quận 3</option>
+                        <option value="district10">Quận 10</option>
                       </select>
                     </label>
                   </div>
@@ -125,7 +128,7 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, onNavigate, onAddToCart }) =>
                   </div>
                   <h2 className="text-2xl font-black font-display tracking-tight">Phương thức thanh toán</h2>
                 </div>
-                
+
                 <div className="grid gap-4">
                   {[
                     { id: 'cod', name: 'Thanh toán khi nhận hàng (COD)', icon: 'local_atm' },
@@ -144,15 +147,15 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, onNavigate, onAddToCart }) =>
             )}
 
             <div className="flex justify-between items-center pt-6">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => step > 1 ? setStep(step - 1) : onNavigate(Page.CART)}
                 className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-2"
               >
                 <span className="material-symbols-outlined !text-[18px]">arrow_back</span>
                 Quay lại
               </button>
-              <button 
+              <button
                 type="submit"
                 className="h-14 px-10 bg-primary hover:bg-primary-dark text-white font-black uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-primary/30 flex items-center gap-3 active:scale-95 group"
               >
@@ -189,7 +192,7 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, onNavigate, onAddToCart }) =>
               </div>
 
               <div className="flex gap-2 mb-8">
-                <input className="flex-1 h-12 rounded-xl bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-surface-border text-xs px-4 focus:ring-2 focus:ring-primary/20 outline-none" placeholder="Mã giảm giá" type="text"/>
+                <input className="flex-1 h-12 rounded-xl bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-surface-border text-xs px-4 focus:ring-2 focus:ring-primary/20 outline-none" placeholder="Mã giảm giá" type="text" />
                 <button className="h-12 px-6 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-900 dark:text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all">Áp dụng</button>
               </div>
 
@@ -229,7 +232,7 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, onNavigate, onAddToCart }) =>
                     <span className="text-[9px] text-slate-500 line-through">2.490.000₫</span>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={(e) => {
                     e.stopPropagation();
                     const product = PRODUCTS.find(p => p.id === 'p4');

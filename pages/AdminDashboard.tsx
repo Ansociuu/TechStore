@@ -4,6 +4,7 @@ import { Page, User } from '../types';
 import AdminOrders from '../components/admin/AdminOrders';
 import AdminProducts from '../components/admin/AdminProducts';
 import AdminCustomers from '../components/admin/AdminCustomers';
+import AdminAI from '../components/admin/AdminAI';
 
 interface AdminDashboardProps {
   onNavigate: (page: Page) => void;
@@ -32,14 +33,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, user }) => 
       {/* Sidebar */}
       <aside className="hidden md:flex flex-col w-20 bg-white dark:bg-surface-dark border-r border-slate-200 dark:border-surface-border h-full flex-shrink-0 transition-all items-center py-6 z-20">
         <div className="mb-10">
-          <div 
+          <div
             onClick={() => onNavigate(Page.HOME)}
             className="size-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg shadow-primary/25 cursor-pointer hover:scale-105 transition-transform"
           >
             <span className="material-symbols-outlined font-variation-fill">hexagon</span>
           </div>
         </div>
-        
+
         <nav className="flex-1 w-full px-3 flex flex-col gap-4 items-center">
           {[
             { id: 'overview', icon: 'dashboard', label: 'Tổng quan' },
@@ -60,9 +61,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, user }) => 
               </div>
             </button>
           ))}
-          
+
           <div className="w-8 h-px bg-slate-100 dark:bg-surface-border my-2"></div>
-          
+
           <button
             onClick={() => onNavigate(Page.HOME)}
             className="flex justify-center items-center size-10 rounded-xl text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white transition-all"
@@ -78,23 +79,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, user }) => 
         {/* Header */}
         <header className="h-20 flex items-center justify-between px-8 bg-white dark:bg-surface-dark border-b border-slate-200 dark:border-surface-border flex-shrink-0 z-10">
           <div className="flex items-center gap-10">
-             <h2 className="text-xl font-black font-display tracking-tight uppercase">Admin Panel</h2>
-             <div className="hidden lg:flex items-center gap-2">
-                {[
-                  { id: 'overview', label: 'Tổng quan' },
-                  { id: 'products', label: 'Sản phẩm' },
-                  { id: 'orders', label: 'Đơn hàng' },
-                  { id: 'customers', label: 'Người dùng' },
-                ].map(tab => (
-                  <button 
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`px-5 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === tab.id ? 'text-primary bg-primary/10' : 'text-slate-400 hover:text-primary'}`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-             </div>
+            <h2 className="text-xl font-black font-display tracking-tight uppercase">Admin Panel</h2>
+            <div className="hidden lg:flex items-center gap-2">
+              {[
+                { id: 'overview', label: 'Tổng quan' },
+                { id: 'products', label: 'Sản phẩm' },
+                { id: 'orders', label: 'Đơn hàng' },
+                { id: 'customers', label: 'Người dùng' },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-5 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === tab.id ? 'text-primary bg-primary/10' : 'text-slate-400 hover:text-primary'}`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="flex items-center gap-6">
@@ -103,10 +104,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, user }) => 
                 <span className="absolute left-4 text-slate-400 group-focus-within:text-primary transition-colors">
                   <span className="material-symbols-outlined text-xl">search</span>
                 </span>
-                <input className="w-full h-10 pl-11 pr-4 rounded-full bg-slate-50 dark:bg-background-dark/50 border-none text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Tìm kiếm..." type="text"/>
+                <input className="w-full h-10 pl-11 pr-4 rounded-full bg-slate-50 dark:bg-background-dark/50 border-none text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Tìm kiếm..." type="text" />
               </label>
             </div>
-            
+
             <div className="flex items-center gap-4 border-l border-slate-100 dark:border-surface-border pl-6 text-left">
               <div className="flex items-center gap-3">
                 <div className="size-10 rounded-full overflow-hidden border-2 border-primary/20">
@@ -155,19 +156,41 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, user }) => 
                       <option>7 ngày qua</option>
                     </select>
                   </div>
-                  
-                  <div className="h-[280px] w-full relative group flex items-end justify-between px-4 pb-4">
-                     {[40, 70, 45, 90, 65, 80, 50, 95, 60, 85, 40, 75].map((h, i) => (
-                       <div key={i} className="w-[6%] group/bar relative">
-                          <div 
-                            className="w-full bg-primary/20 rounded-t-lg group-hover/bar:bg-primary transition-all duration-500" 
+
+                  <div className="h-[280px] w-full relative group flex items-end justify-between px-2 pb-10 pt-4">
+                    {/* Y-Axis Labels */}
+                    <div className="absolute left-0 top-4 bottom-10 flex flex-col justify-between text-[8px] font-black text-slate-400 select-none">
+                      <span>100M</span>
+                      <span>75M</span>
+                      <span>50M</span>
+                      <span>25M</span>
+                      <span>0</span>
+                    </div>
+
+                    {/* Grid Lines */}
+                    <div className="absolute left-8 right-0 top-4 bottom-10 flex flex-col justify-between pointer-events-none">
+                      {[0, 1, 2, 3, 4].map(line => (
+                        <div key={line} className="w-full h-px bg-slate-100 dark:bg-white/5"></div>
+                      ))}
+                    </div>
+
+                    {/* Bars */}
+                    <div className="flex-1 flex items-end justify-around ml-8 h-full">
+                      {[40, 70, 45, 90, 65, 80, 50, 95, 60, 85, 40, 75].map((h, i) => (
+                        <div key={i} className="w-[6%] group/bar relative flex flex-col items-center">
+                          <div
+                            className="w-full bg-primary/20 rounded-t-lg group-hover/bar:bg-primary group-hover/bar:shadow-[0_0_20px_rgba(var(--color-primary-rgb),0.3)] transition-all duration-500 relative"
                             style={{ height: `${h}%` }}
-                          ></div>
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-slate-900 text-white text-[8px] font-black px-2 py-1 rounded opacity-0 group-hover/bar:opacity-100 transition-opacity">
-                            {h}M
+                          >
+                            <div className="absolute top-0 left-0 w-full h-1 bg-white/20 rounded-t-lg"></div>
                           </div>
-                       </div>
-                     ))}
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-slate-900 dark:bg-slate-800 text-white text-[8px] font-black px-2 py-1 rounded shadow-xl opacity-0 group-hover/bar:opacity-100 transition-all scale-75 group-hover/bar:scale-100 pointer-events-none whitespace-nowrap z-20">
+                            {h}M VNĐ
+                          </div>
+                          <span className="absolute top-full mt-2 text-[8px] font-bold text-slate-400 uppercase tracking-tighter">T{i + 1}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -176,10 +199,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, user }) => 
                   <div className="bg-gradient-to-br from-primary to-indigo-700 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden group">
                     <div className="absolute -right-10 -top-10 bg-white/10 blur-[50px] size-40 rounded-full group-hover:scale-150 transition-transform duration-1000"></div>
                     <div className="relative z-10 text-center space-y-4">
-                        <span className="material-symbols-outlined !text-[40px] font-variation-fill animate-sparkle">auto_awesome</span>
-                        <h3 className="text-xs font-black uppercase tracking-widest">AI Performance Score</h3>
-                        <div className="text-5xl font-black font-display">94.2</div>
-                        <p className="text-[10px] text-white/70 leading-relaxed font-medium">Hệ thống AI đã giúp giảm 20% tỷ lệ hoàn đơn và tăng 15% doanh số chéo.</p>
+                      <span className="material-symbols-outlined !text-[40px] font-variation-fill animate-sparkle">auto_awesome</span>
+                      <h3 className="text-xs font-black uppercase tracking-widest">AI Performance Score</h3>
+                      <div className="text-5xl font-black font-display">94.2</div>
+                      <p className="text-[10px] text-white/70 leading-relaxed font-medium">Hệ thống AI đã giúp giảm 20% tỷ lệ hoàn đơn và tăng 15% doanh số chéo.</p>
                     </div>
                   </div>
 
@@ -192,13 +215,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, user }) => 
                         { label: 'Âm thanh', val: 45, color: 'bg-orange-500' },
                       ].map((item, i) => (
                         <div key={i} className="space-y-2">
-                           <div className="flex justify-between text-[10px] font-black uppercase">
-                              <span>{item.label}</span>
-                              <span>{item.val}%</span>
-                           </div>
-                           <div className="h-1.5 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
-                              <div className={`h-full ${item.color}`} style={{ width: `${item.val}%` }}></div>
-                           </div>
+                          <div className="flex justify-between text-[10px] font-black uppercase">
+                            <span>{item.label}</span>
+                            <span>{item.val}%</span>
+                          </div>
+                          <div className="h-1.5 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                            <div className={`h-full ${item.color}`} style={{ width: `${item.val}%` }}></div>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -227,8 +250,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, user }) => 
                         <tr key={order.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group">
                           <td className="py-5 px-8 text-xs font-black text-slate-900 dark:text-white">{order.id}</td>
                           <td className="py-5 px-8">
-                             <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{order.product}</p>
-                             <p className="text-[10px] text-slate-400 font-medium">Khách: {order.customer}</p>
+                            <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{order.product}</p>
+                            <p className="text-[10px] text-slate-400 font-medium">Khách: {order.customer}</p>
                           </td>
                           <td className="py-5 px-8 text-xs font-black text-primary text-right">{order.amount}</td>
                           <td className="py-5 px-8 text-center">
@@ -247,6 +270,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, user }) => 
           {activeTab === 'orders' && <AdminOrders />}
           {activeTab === 'products' && <AdminProducts />}
           {activeTab === 'customers' && <AdminCustomers />}
+          {activeTab === 'ai' && <AdminAI />}
         </div>
 
         {/* Footer */}
