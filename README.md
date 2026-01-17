@@ -5,12 +5,12 @@ Chào mừng đến với **TechStore**, một dự án website thương mại �
 
 ##  Tính năng Nổi bật
 
-*   ** Hiệu năng vượt trội**: Xây dựng trên nền tảng Vite và React 19, đảm bảo tốc độ tải trang cực nhanh.
-*   ** AI Assistant**: Trợ lý ảo thông minh (Google Gemini) tư vấn sản phẩm, so sánh cấu hình và giải đáp thắc mắc khách hàng 24/7.
-*   ** Giao diện Hiện đại**: Thiết kế theo phong cách Glassmorphism, Responsive hoàn hảo trên mọi thiết bị (Desktop, Tablet, Mobile).
-*   ** Dark/Light Mode**: Chế độ Sáng/Tối linh hoạt, tự động nhận diện sở thích người dùng hoặc tùy chỉnh thủ công.
-*   ** Tìm kiếm & Lọc thông minh**: Hệ thống lọc sản phẩm theo danh mục, mức giá và thương hiệu với phản hồi tức thì.
-*   ** Quản lý Giỏ hàng**: Thao tác thêm, sửa, xóa sản phẩm trong giỏ hàng mượt mà.
+*   **Hiệu năng vượt trội**: Xây dựng trên nền tảng Vite và React 19, đảm bảo tốc độ tải trang cực nhanh.
+*   **AI Assistant**: Trợ lý ảo thông minh (Google Gemini) tư vấn sản phẩm, so sánh cấu hình và giải đáp thắc mắc khách hàng 24/7.
+*   **Giao diện Hiện đại**: Thiết kế theo phong cách Glassmorphism, Responsive hoàn hảo trên mọi thiết bị (Desktop, Tablet, Mobile).
+*   **Dark/Light Mode**: Chế độ Sáng/Tối linh hoạt, tự động nhận diện sở thích người dùng hoặc tùy chỉnh thủ công.
+*   **Tìm kiếm & Lọc thông minh**: Hệ thống lọc sản phẩm theo danh mục, mức giá và thương hiệu với phản hồi tức thì.
+*   **Quản lý Giỏ hàng**: Thao tác thêm, sửa, xóa sản phẩm trong giỏ hàng mượt mà.
 
 ##  Công nghệ Sử dụng
 
