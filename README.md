@@ -35,7 +35,6 @@ Dự án sử dụng các công nghệ tiên tiến nhất hiện nay:
 **Bước 1: Clone dự án**
 ```bash
 git clone https://github.com/Ansociuu/TechStore.git
-cd TechStore/frontend
 ```
 
 **Bước 2: Cài đặt thư viện**
