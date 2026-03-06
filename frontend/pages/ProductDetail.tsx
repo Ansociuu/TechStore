@@ -20,6 +20,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onAddToCart, onB
   const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
   const currentUser: User | null = authAPI.getCurrentUser();
 
   useEffect(() => {
@@ -218,8 +219,17 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onAddToCart, onB
               <span className="material-symbols-outlined !text-[22px]">flash_on</span>
               Mua ngay
             </button>
-            <button className="bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-900 dark:text-white rounded-2xl size-16 flex items-center justify-center transition-all active:scale-95 border border-transparent hover:border-slate-200 dark:hover:border-slate-700">
-              <span className="material-symbols-outlined !text-[28px]">favorite</span>
+            <button
+              onClick={() => {
+                const nextState = !isFavorite;
+                setIsFavorite(nextState);
+                if (nextState) {
+                  alert('Đã thêm sản phẩm vào danh sách yêu thích!');
+                }
+              }}
+              className={`rounded-2xl size-16 flex items-center justify-center transition-all active:scale-95 border ${isFavorite ? 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20 text-red-500' : 'bg-slate-100 dark:bg-white/5 border-transparent hover:border-slate-200 dark:hover:border-slate-700 text-slate-900 dark:text-white'}`}
+            >
+              <span className={`material-symbols-outlined !text-[28px] ${isFavorite ? 'font-variation-fill' : ''}`}>favorite</span>
             </button>
           </div>
         </div>

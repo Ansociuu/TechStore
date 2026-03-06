@@ -1,8 +1,9 @@
-
-import React, { useMemo, useState } from 'react';
-import { CartItem, Product, Page } from '../types';
+import React, { useMemo, useState, useEffect } from 'react';
+import { CartItem, Product, Page, User } from '../types';
+import { voucherAPI } from '../services/apiService';
 
 interface CartProps {
+  user: User | null;
   cart: CartItem[];
   onUpdateQuantity: (productId: string, delta: number) => void;
   onRemoveItem: (productId: string) => void;
@@ -10,12 +11,35 @@ interface CartProps {
   onNavigate: (page: Page) => void;
   onProductSelect: (product: Product) => void;
   onAddToCart: (product: Product) => void;
-  onCheckoutSelected: (items: CartItem[]) => void;
+  onCheckoutSelected: (items: CartItem[], voucher?: any) => void;
 }
 
-const Cart: React.FC<CartProps> = ({ cart, onUpdateQuantity, onRemoveItem, onClearCart, onNavigate, onProductSelect, onAddToCart, onCheckoutSelected }) => {
+const Cart: React.FC<CartProps> = ({ user, cart, onUpdateQuantity, onRemoveItem, onClearCart, onNavigate, onProductSelect, onAddToCart, onCheckoutSelected }) => {
   const [promoCode, setPromoCode] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(cart.map(item => item.id)));
+  const [availableVouchers, setAvailableVouchers] = useState<any[]>([]);
+  const [loadingVouchers, setLoadingVouchers] = useState(false);
+  const [appliedVoucher, setAppliedVoucher] = useState<any>(null);
+  const [isVerifyingVoucher, setIsVerifyingVoucher] = useState(false);
+  const [voucherError, setVoucherError] = useState('');
+
+  useEffect(() => {
+    const fetchVouchers = async () => {
+      try {
+        setLoadingVouchers(true);
+        const data = await voucherAPI.getAll();
+        setAvailableVouchers(data);
+      } catch (error) {
+        console.error('Error fetching vouchers:', error);
+      } finally {
+        setLoadingVouchers(false);
+      }
+    };
+
+    if (user) {
+      fetchVouchers();
+    }
+  }, [user]);
 
   const selectedItems = useMemo(() => cart.filter(item => selectedIds.has(item.id)), [cart, selectedIds]);
   const allSelected = cart.length > 0 && selectedIds.size === cart.length;
@@ -23,7 +47,8 @@ const Cart: React.FC<CartProps> = ({ cart, onUpdateQuantity, onRemoveItem, onCle
 
   const subtotal = useMemo(() => selectedItems.reduce((acc, item) => acc + (item.price * item.quantity), 0), [selectedItems]);
   const shipping = 0;
-  const total = subtotal + shipping;
+  const discountAmount = appliedVoucher ? appliedVoucher.discountAmount : 0;
+  const total = subtotal + shipping - discountAmount;
 
   const toggleSelectAll = () => {
     if (allSelected) {
@@ -50,7 +75,7 @@ const Cart: React.FC<CartProps> = ({ cart, onUpdateQuantity, onRemoveItem, onCle
       alert('Vui lòng chọn ít nhất 1 sản phẩm để thanh toán.');
       return;
     }
-    onCheckoutSelected(selectedItems);
+    onCheckoutSelected(selectedItems, appliedVoucher);
   };
 
   const aiSuggestions = [
@@ -83,12 +108,32 @@ const Cart: React.FC<CartProps> = ({ cart, onUpdateQuantity, onRemoveItem, onCle
     }
   ];
 
-  const handleApplyPromo = () => {
-    if (promoCode.trim()) {
-      alert(`Mã giảm giá "${promoCode}" đang được kiểm tra trên hệ thống...`);
-    } else {
+  const handleApplyPromo = async () => {
+    if (!promoCode.trim()) {
       alert('Vui lòng nhập mã giảm giá.');
+      return;
     }
+
+    try {
+      setIsVerifyingVoucher(true);
+      setVoucherError('');
+      const data = await voucherAPI.verify(promoCode, subtotal);
+      setAppliedVoucher(data);
+      alert('Áp dụng mã giảm giá thành công!');
+    } catch (error: any) {
+      const msg = error.response?.data?.error || 'Mã giảm giá không hợp lệ';
+      setVoucherError(msg);
+      setAppliedVoucher(null);
+      alert(msg);
+    } finally {
+      setIsVerifyingVoucher(false);
+    }
+  };
+
+  const removeVoucher = () => {
+    setAppliedVoucher(null);
+    setPromoCode('');
+    setVoucherError('');
   };
 
   if (cart.length === 0) {
@@ -137,10 +182,10 @@ const Cart: React.FC<CartProps> = ({ cart, onUpdateQuantity, onRemoveItem, onCle
                     <button
                       onClick={toggleSelectAll}
                       className={`size-5 rounded-md border-2 flex items-center justify-center transition-all cursor-pointer ${allSelected
-                          ? 'bg-primary border-primary text-white'
-                          : someSelected
-                            ? 'bg-primary/30 border-primary text-white'
-                            : 'border-slate-300 dark:border-slate-600 hover:border-primary'
+                        ? 'bg-primary border-primary text-white'
+                        : someSelected
+                          ? 'bg-primary/30 border-primary text-white'
+                          : 'border-slate-300 dark:border-slate-600 hover:border-primary'
                         }`}
                     >
                       {(allSelected || someSelected) && (
@@ -165,8 +210,8 @@ const Cart: React.FC<CartProps> = ({ cart, onUpdateQuantity, onRemoveItem, onCle
                         <button
                           onClick={() => toggleSelectItem(item.id)}
                           className={`size-5 rounded-md border-2 flex items-center justify-center transition-all cursor-pointer ${isSelected
-                              ? 'bg-primary border-primary text-white shadow-sm shadow-primary/30'
-                              : 'border-slate-300 dark:border-slate-600 hover:border-primary'
+                            ? 'bg-primary border-primary text-white shadow-sm shadow-primary/30'
+                            : 'border-slate-300 dark:border-slate-600 hover:border-primary'
                             }`}
                         >
                           {isSelected && <span className="material-symbols-outlined !text-[14px] font-bold">check</span>}
@@ -288,6 +333,12 @@ const Cart: React.FC<CartProps> = ({ cart, onUpdateQuantity, onRemoveItem, onCle
                       <span className="text-sm font-medium">Đã chọn ({selectedItems.length}/{cart.length} món)</span>
                       <span className="text-sm font-black">{subtotal.toLocaleString('vi-VN')}₫</span>
                     </div>
+                    {discountAmount > 0 && (
+                      <div className="flex justify-between items-center text-green-500">
+                        <span className="text-sm font-medium">Giảm giá ({appliedVoucher?.code})</span>
+                        <span className="text-sm font-black">-{discountAmount.toLocaleString('vi-VN')}₫</span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">Thuế (VAT 10%)</span>
                       <span className="text-xs font-bold text-slate-400 italic">Đã bao gồm</span>
@@ -310,8 +361,8 @@ const Cart: React.FC<CartProps> = ({ cart, onUpdateQuantity, onRemoveItem, onCle
                 onClick={handleCheckout}
                 disabled={selectedItems.length === 0}
                 className={`w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl transition-all flex items-center justify-center gap-3 active:scale-95 group ${selectedItems.length > 0
-                    ? 'bg-primary hover:bg-primary-dark text-white shadow-primary/30'
-                    : 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none'
+                  ? 'bg-primary hover:bg-primary-dark text-white shadow-primary/30'
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none'
                   }`}
               >
                 {selectedItems.length > 0 ? `Thanh toán (${selectedItems.length})` : 'Chọn sản phẩm để thanh toán'}
@@ -330,15 +381,59 @@ const Cart: React.FC<CartProps> = ({ cart, onUpdateQuantity, onRemoveItem, onCle
                   value={promoCode}
                   onChange={(e) => setPromoCode(e.target.value)}
                   placeholder="Nhập mã ưu đãi..."
-                  className="flex-1 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 text-sm px-4 py-3 outline-none focus:ring-2 focus:ring-primary/20 transition-all text-slate-900 dark:text-white"
+                  disabled={appliedVoucher || isVerifyingVoucher}
+                  className="flex-1 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 text-sm px-4 py-3 outline-none focus:ring-2 focus:ring-primary/20 transition-all text-slate-900 dark:text-white disabled:opacity-50"
                 />
-                <button
-                  onClick={handleApplyPromo}
-                  className="px-6 py-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-slate-900 dark:text-white"
-                >
-                  Áp dụng
-                </button>
+                {appliedVoucher ? (
+                  <button
+                    onClick={removeVoucher}
+                    className="px-6 py-3 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
+                  >
+                    Hủy
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleApplyPromo}
+                    disabled={isVerifyingVoucher || !promoCode}
+                    className="px-6 py-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-slate-900 dark:text-white disabled:opacity-50"
+                  >
+                    {isVerifyingVoucher ? '...' : 'Áp dụng'}
+                  </button>
+                )}
               </div>
+
+              {availableVouchers.length > 0 && (
+                <div className="pt-2">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-3 ml-1">Voucher có sẵn từ kho</p>
+                  <div className="flex flex-col gap-2">
+                    {availableVouchers.map((v) => (
+                      <button
+                        key={v.id}
+                        onClick={() => setPromoCode(v.code)}
+                        className={`group flex items-center justify-between p-3 rounded-xl border transition-all text-left ${promoCode === v.code
+                          ? 'border-primary bg-primary/5 ring-2 ring-primary/10'
+                          : 'border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 hover:border-primary/50'
+                          }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`size-8 rounded-lg flex items-center justify-center ${promoCode === v.code ? 'bg-primary text-white' : 'bg-white dark:bg-surface-dark text-primary border border-slate-100 dark:border-surface-border'}`}>
+                            <span className="material-symbols-outlined !text-[18px]">redeem</span>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-tight">{v.code}</p>
+                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter mt-0.5">
+                              Giảm {v.type === 'percentage' ? `${v.discount}%` : `${v.discount.toLocaleString('vi-VN')}₫`}
+                            </p>
+                          </div>
+                        </div>
+                        {promoCode === v.code && (
+                          <span className="material-symbols-outlined text-primary !text-[16px] font-bold animate-in zoom-in">check_circle</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="rounded-2xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-white/5 p-6 flex gap-4">

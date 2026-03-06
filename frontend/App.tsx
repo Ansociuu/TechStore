@@ -24,6 +24,7 @@ const App: React.FC = () => {
   const [buyNowItem, setBuyNowItem] = useState<CartItem | null>(null);
   const [checkoutItems, setCheckoutItems] = useState<CartItem[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [checkoutVoucher, setCheckoutVoucher] = useState<any>(null);
   const [user, setUser] = useState<User | null>(() => {
     const savedUser = localStorage.getItem('user');
     return savedUser ? JSON.parse(savedUser) : null;
@@ -268,6 +269,7 @@ const App: React.FC = () => {
 
         {currentPage === Page.CART && (
           <Cart
+            user={user}
             cart={cart}
             onUpdateQuantity={handleUpdateCartQuantity}
             onRemoveItem={handleRemoveFromCart}
@@ -275,8 +277,9 @@ const App: React.FC = () => {
             onNavigate={setCurrentPage}
             onProductSelect={handleProductSelect}
             onAddToCart={handleAddToCart}
-            onCheckoutSelected={(items) => {
+            onCheckoutSelected={(items, voucher) => {
               setCheckoutItems(items);
+              setCheckoutVoucher(voucher);
               setBuyNowItem(null);
               setCurrentPage(Page.CHECKOUT);
               window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -290,8 +293,10 @@ const App: React.FC = () => {
             onNavigate={(page) => {
               setBuyNowItem(null);
               setCheckoutItems([]);
+              setCheckoutVoucher(null);
               setCurrentPage(page);
             }}
+            initialVoucher={checkoutVoucher}
             onAddToCart={handleAddToCart}
             user={user}
             onClearCart={(force) => {

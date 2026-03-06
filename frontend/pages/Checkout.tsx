@@ -10,9 +10,10 @@ interface CheckoutProps {
   onAddToCart: (product: Product) => void;
   user: User | null;
   onClearCart: (force?: boolean) => void;
+  initialVoucher?: any;
 }
 
-const Checkout: React.FC<CheckoutProps> = ({ cart, onNavigate, onAddToCart, user, onClearCart }) => {
+const Checkout: React.FC<CheckoutProps> = ({ cart, onNavigate, onAddToCart, user, onClearCart, initialVoucher }) => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -29,8 +30,8 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, onNavigate, onAddToCart, user
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('new');
 
-  const [voucherCode, setVoucherCode] = useState('');
-  const [appliedVoucher, setAppliedVoucher] = useState<any>(null);
+  const [voucherCode, setVoucherCode] = useState(initialVoucher?.code || '');
+  const [appliedVoucher, setAppliedVoucher] = useState<any>(initialVoucher || null);
   const [availableVouchers, setAvailableVouchers] = useState<any[]>([]);
   const [isVerifyingVoucher, setIsVerifyingVoucher] = useState(false);
 

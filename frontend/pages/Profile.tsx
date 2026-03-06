@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Page, Product, Order, Address } from '../types';
-import { orderAPI, userAPI } from '../services/apiService';
+import { orderAPI, userAPI, voucherAPI, productAPI } from '../services/apiService';
 
 interface ProfileProps {
   user: User;
@@ -48,21 +48,57 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
     newPassword: '',
     confirmPassword: ''
   });
+  const [loadingProfile, setLoadingProfile] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [vouchers, setVouchers] = useState<any[]>([]);
+  const [loadingVouchers, setLoadingVouchers] = useState(false);
+  const [wishlist, setWishlist] = useState<Product[]>([]);
+  const [loadingWishlist, setLoadingWishlist] = useState(false);
 
-  // Fetch full user profile on mount
+  // Fetch full user profile, orders, vouchers, and wishlist on mount
   useEffect(() => {
     const fetchFullProfile = async () => {
       try {
+        setLoadingProfile(true);
         const fullUser = await userAPI.getProfile();
         onUpdateUser(fullUser);
         setAddresses(fullUser.addresses || []);
       } catch (error) {
         console.error('Lỗi khi tải thông tin chi tiết:', error);
+      } finally {
+        setLoadingProfile(false);
       }
     };
     fetchFullProfile();
+    fetchOrders();
+    fetchVouchers();
+    fetchWishlist();
   }, []);
+
+  const fetchVouchers = async () => {
+    try {
+      setLoadingVouchers(true);
+      const data = await voucherAPI.getAll();
+      setVouchers(data);
+    } catch (error) {
+      console.error('Failed to fetch vouchers:', error);
+    } finally {
+      setLoadingVouchers(false);
+    }
+  };
+
+  const fetchWishlist = async () => {
+    try {
+      setLoadingWishlist(true);
+      // Since backend doesn't have wishlist yet, we'll mock it with some products
+      const data = await productAPI.getAll({ limit: 4 });
+      setWishlist(data.products.slice(0, 2));
+    } catch (error) {
+      console.error('Failed to fetch wishlist:', error);
+    } finally {
+      setLoadingWishlist(false);
+    }
+  };
 
   // Đồng bộ form khi user prop thay đổi
   useEffect(() => {
@@ -80,12 +116,12 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
   const [orders, setOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
 
-  // Fetch orders khi tab active là 'orders'
+  // Fetch orders khi tab active là 'orders' (để đảm bảo dữ liệu mới nhất)
   useEffect(() => {
     if (activeTab === 'orders' && user) {
       fetchOrders();
     }
-  }, [activeTab, user]);
+  }, [activeTab]);
 
   const fetchOrders = async () => {
     try {
@@ -116,6 +152,18 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
       console.error('Failed to fetch orders:', error);
     } finally {
       setLoadingOrders(false);
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'pending': return { text: 'Chờ xử lý', color: 'text-yellow-600 bg-yellow-500/10' };
+      case 'processing': return { text: 'Đang đóng gói', color: 'text-blue-600 bg-blue-500/10' };
+      case 'shipped':
+      case 'shipping': return { text: 'Đang vận chuyển', color: 'text-indigo-600 bg-indigo-500/10' };
+      case 'delivered': return { text: 'Hoàn tất', color: 'text-green-600 bg-green-500/10' };
+      case 'cancelled': return { text: 'Đã hủy', color: 'text-red-500 bg-red-500/10' };
+      default: return { text: status, color: 'text-slate-500 bg-slate-500/10' };
     }
   };
 
@@ -275,7 +323,8 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
                 { id: 'info', label: 'Thông tin tài khoản', icon: 'person' },
                 { id: 'orders', label: 'Lịch sử đơn hàng', icon: 'inventory_2' },
                 { id: 'address', label: 'Sổ địa chỉ', icon: 'location_on' },
-                { id: 'ai', label: 'Sở thích AI', icon: 'auto_awesome' },
+                { id: 'vouchers', label: 'Kho voucher', icon: 'confirmation_number' },
+                { id: 'wishlist', label: 'Danh sách yêu thích', icon: 'favorite' },
                 { id: 'settings', label: 'Cài đặt', icon: 'settings' },
               ].map((tab) => (
                 <button
@@ -305,10 +354,10 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
         <div className="flex-1 space-y-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: 'Đơn hàng', value: orders.length.toString(), icon: 'shopping_bag' },
-              { label: 'Tích lũy', value: user.points?.toString() || '0', icon: 'database' },
-              { label: 'Voucher', value: '0', icon: 'sell' },
-              { label: 'AI Score', value: user.aiScore?.toString() || '0', icon: 'psychology' },
+              { label: 'Đơn hàng', value: loadingOrders ? '...' : orders.length.toString(), icon: 'shopping_bag' },
+              { label: 'Tích lũy', value: loadingProfile ? '...' : (user.points?.toString() || '0'), icon: 'database' },
+              { label: 'Voucher', value: loadingVouchers ? '...' : vouchers.length.toString(), icon: 'confirmation_number' },
+              { label: 'Yêu thích', value: loadingWishlist ? '...' : wishlist.length.toString(), icon: 'favorite' },
             ].map((stat, i) => (
               <div key={i} className="bg-white dark:bg-surface-dark p-6 rounded-3xl border border-slate-100 dark:border-surface-border flex flex-col items-center gap-1 shadow-sm">
                 <span className="material-symbols-outlined text-primary !text-[20px] mb-1">{stat.icon}</span>
@@ -447,8 +496,8 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
                           <p className="text-sm font-bold text-slate-600 dark:text-slate-300">{order.date}</p>
                         </div>
                       </div>
-                      <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${order.status === 'Giao thành công' ? 'text-green-500 bg-green-500/10' : 'text-primary bg-primary/10'}`}>
-                        {order.status}
+                      <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${getStatusLabel(order.status).color}`}>
+                        {getStatusLabel(order.status).text}
                       </span>
                     </div>
                     <div className="p-8 space-y-6">
@@ -617,24 +666,76 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
             </div>
           )}
 
-          {activeTab === 'ai' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
-              <div className="bg-gradient-to-br from-indigo-900 to-[#0f172a] rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden group">
-                <div className="absolute -right-20 -top-20 bg-primary/20 blur-[100px] size-80 rounded-full group-hover:bg-primary/30 transition-all duration-1000"></div>
-                <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-10">
-                  <div className="flex-1 space-y-4">
-                    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 w-fit">
-                      <span className="material-symbols-outlined !text-[16px] text-primary font-variation-fill animate-pulse">auto_awesome</span>
-                      <span className="text-[10px] font-black text-primary uppercase tracking-widest">AI Profile Insight</span>
-                    </div>
-                    <h2 className="text-3xl font-black font-display text-white">Phân tích phong cách công nghệ</h2>
-                    <p className="text-slate-400 text-sm leading-relaxed max-w-md">
-                      Dựa trên các đơn hàng Laptop và Phụ kiện cao cấp, AI nhận diện bạn là một <b>Power User</b>.
-                    </p>
-                    <button className="px-8 py-3 bg-white text-slate-900 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-primary hover:text-white transition-all">Cập nhật sở thích</button>
-                  </div>
+          {activeTab === 'vouchers' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+              <h2 className="text-2xl font-black font-display tracking-tight flex items-center gap-3">
+                <span className="material-symbols-outlined text-primary font-variation-fill">confirmation_number</span>
+                Kho Voucher của tôi
+              </h2>
+
+              {loadingVouchers ? (
+                <div className="flex justify-center p-12">
+                  <div className="size-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
                 </div>
-              </div>
+              ) : vouchers.length === 0 ? (
+                <div className="text-center p-12 bg-slate-50 dark:bg-black/20 rounded-3xl">
+                  <span className="material-symbols-outlined text-4xl text-slate-300 mb-4">confirmation_number</span>
+                  <p className="text-slate-500 font-bold">Bạn hiện chưa có voucher nào</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {vouchers.map(voucher => (
+                    <div key={voucher.id} className="bg-white dark:bg-surface-dark p-6 rounded-3xl border border-slate-100 dark:border-surface-border flex items-center gap-6 relative overflow-hidden group hover:border-primary transition-all">
+                      <div className="absolute left-0 top-0 bottom-0 w-2 bg-primary"></div>
+                      <div className="size-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                        <span className="material-symbols-outlined !text-[32px]">redeem</span>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-black text-sm">{voucher.code}</h4>
+                        <p className="text-xs text-slate-500 mt-1">
+                          Giảm {voucher.type === 'percentage' ? `${voucher.discount}%` : `${voucher.discount.toLocaleString('vi-VN')}₫`}
+                        </p>
+                        <p className="text-[10px] text-slate-400 mt-2">Hết hạn: {new Date(voucher.endDate).toLocaleDateString('vi-VN')}</p>
+                      </div>
+                      <button className="px-4 py-2 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest rounded-lg group-hover:bg-primary group-hover:text-white transition-all">Sử dụng</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'wishlist' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+              <h2 className="text-2xl font-black font-display tracking-tight flex items-center gap-3">
+                <span className="material-symbols-outlined text-primary font-variation-fill">favorite</span>
+                Danh sách yêu thích
+              </h2>
+
+              {wishlist.length === 0 ? (
+                <div className="text-center p-12 bg-slate-50 dark:bg-black/20 rounded-3xl">
+                  <span className="material-symbols-outlined text-4xl text-slate-300 mb-4">favorite</span>
+                  <p className="text-slate-500 font-bold">Danh sách yêu thích trống</p>
+                  <button onClick={() => onNavigate(Page.HOME)} className="mt-4 text-primary font-bold hover:underline">Khám phá sản phẩm</button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {wishlist.map(product => (
+                    <div key={product.id} onClick={() => onProductSelect(product)} className="bg-white dark:bg-surface-dark p-4 rounded-3xl border border-slate-100 dark:border-surface-border flex gap-4 hover:border-primary transition-all cursor-pointer group">
+                      <div className="size-20 rounded-2xl bg-slate-50 dark:bg-black/40 p-2 flex-shrink-0">
+                        <img src={product.image} alt={product.name} className="size-full object-contain" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-black line-clamp-1 group-hover:text-primary transition-colors">{product.name}</h4>
+                        <p className="text-xs text-primary font-black mt-1">{product.price.toLocaleString('vi-VN')}₫</p>
+                        <button className="mt-2 text-[10px] font-black text-red-500 flex items-center gap-1 hover:underline">
+                          <span className="material-symbols-outlined !text-[14px]">delete</span> Gỡ bỏ
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -712,61 +813,63 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
       </div>
 
       {/* Modal Đổi mật khẩu */}
-      {isChangingPassword && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-surface-dark w-full max-w-md rounded-[2.5rem] p-10 border border-slate-100 dark:border-surface-border shadow-2xl animate-in zoom-in-95 duration-300">
-            <h3 className="text-2xl font-black font-display mb-8">Đổi mật khẩu</h3>
-            <form onSubmit={handlePasswordChange} className="space-y-6">
-              <label className="flex flex-col gap-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Mật khẩu cũ</span>
-                <input
-                  type="password"
-                  value={passwordForm.oldPassword}
-                  onChange={(e) => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })}
-                  className="h-14 rounded-2xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-6 text-sm font-bold outline-none focus:border-primary"
-                  required
-                />
-              </label>
-              <label className="flex flex-col gap-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Mật khẩu mới</span>
-                <input
-                  type="password"
-                  value={passwordForm.newPassword}
-                  onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                  className="h-14 rounded-2xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-6 text-sm font-bold outline-none focus:border-primary"
-                  required
-                />
-              </label>
-              <label className="flex flex-col gap-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Xác nhận mật khẩu mới</span>
-                <input
-                  type="password"
-                  value={passwordForm.confirmPassword}
-                  onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                  className="h-14 rounded-2xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-6 text-sm font-bold outline-none focus:border-primary"
-                  required
-                />
-              </label>
-              <div className="flex gap-4 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setIsChangingPassword(false)}
-                  className="flex-1 px-6 py-4 rounded-2xl border border-slate-100 dark:border-surface-border text-xs font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-white/5 transition-all"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="flex-1 px-6 py-4 rounded-2xl bg-primary text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all disabled:opacity-50"
-                >
-                  {isSaving ? 'Đang lưu...' : 'Cập nhật'}
-                </button>
-              </div>
-            </form>
+      {
+        isChangingPassword && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="bg-white dark:bg-surface-dark w-full max-w-md rounded-[2.5rem] p-10 border border-slate-100 dark:border-surface-border shadow-2xl animate-in zoom-in-95 duration-300">
+              <h3 className="text-2xl font-black font-display mb-8">Đổi mật khẩu</h3>
+              <form onSubmit={handlePasswordChange} className="space-y-6">
+                <label className="flex flex-col gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Mật khẩu cũ</span>
+                  <input
+                    type="password"
+                    value={passwordForm.oldPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })}
+                    className="h-14 rounded-2xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-6 text-sm font-bold outline-none focus:border-primary"
+                    required
+                  />
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Mật khẩu mới</span>
+                  <input
+                    type="password"
+                    value={passwordForm.newPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                    className="h-14 rounded-2xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-6 text-sm font-bold outline-none focus:border-primary"
+                    required
+                  />
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Xác nhận mật khẩu mới</span>
+                  <input
+                    type="password"
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                    className="h-14 rounded-2xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-6 text-sm font-bold outline-none focus:border-primary"
+                    required
+                  />
+                </label>
+                <div className="flex gap-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsChangingPassword(false)}
+                    className="flex-1 px-6 py-4 rounded-2xl border border-slate-100 dark:border-surface-border text-xs font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-white/5 transition-all"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="flex-1 px-6 py-4 rounded-2xl bg-primary text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all disabled:opacity-50"
+                  >
+                    {isSaving ? 'Đang lưu...' : 'Cập nhật'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 }

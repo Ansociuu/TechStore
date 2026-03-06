@@ -54,52 +54,8 @@ export default function AIAssistant({ onNavigate }: AIAssistantProps) {
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 max-w-7xl mx-auto min-h-[80vh] animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
-      {/* Sidebar - Insights */}
-      <aside className="w-full lg:w-96 flex flex-col gap-6 order-2 lg:order-1">
-        <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] border border-slate-100 dark:border-surface-border p-8 shadow-sm">
-          <h3 className="text-base font-black uppercase tracking-[0.25em] text-slate-600 mb-10 flex items-center gap-1">
-            <span className="material-symbols-outlined !text-[28px]">analytics</span>
-            AI Insights Dashboard
-          </h3>
-          <div className="space-y-6">
-            {insights.map((item, i) => (
-              <div key={i} className="p-8 rounded-[2rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-surface-border group hover:border-primary hover:bg-white dark:hover:bg-white/10 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-lg">
-                <div className="flex items-center gap-5 mb-4">
-                  <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-primary !text-[28px]">{item.icon}</span>
-                  </div>
-                  <h4 className="text-base font-black uppercase tracking-widest text-slate-700 dark:text-slate-200">{item.title}</h4>
-                </div>
-                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-12 p-8 rounded-[2.5rem] bg-gradient-to-br from-primary/10 to-indigo-500/5 border border-primary/20 relative overflow-hidden group">
-            <div className="absolute -right-8 -bottom-8 bg-primary/15 size-32 rounded-full group-hover:scale-150 transition-transform duration-700 blur-2xl"></div>
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="material-symbols-outlined text-primary !text-[24px]">lightbulb</span>
-                <p className="text-sm font-black text-primary uppercase tracking-widest italic">Mẹo AI hữu ích</p>
-              </div>
-              <p className="text-base text-slate-600 dark:text-slate-300 leading-relaxed font-semibold">
-                Bạn có thể yêu cầu AI <span className="text-primary font-bold">so sánh trực tiếp</span> thông số kỹ thuật giữa 2 mã sản phẩm bất kỳ để đưa ra lựa chọn chính xác nhất.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <button
-          onClick={() => onNavigate(Page.HOME)}
-          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-primary transition-all group px-6"
-        >
-          <span className="material-symbols-outlined !text-[18px] group-hover:-translate-x-1 transition-transform">arrow_back</span>
-          Quay lại cửa hàng
-        </button>
-      </aside>
-
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col gap-6 order-1 lg:order-2">
+      <div className="flex-1 flex flex-col gap-6 max-w-4xl mx-auto w-full">
         <div className="flex items-center justify-between border-b border-slate-200 dark:border-surface-border pb-6">
           <div className="flex items-center gap-4">
             <div className="size-14 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg animate-sparkle shadow-primary/20">

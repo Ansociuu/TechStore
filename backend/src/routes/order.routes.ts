@@ -90,6 +90,17 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
                 console.log(`[Order] Voucher ${voucherId} usage count incremented`);
             }
 
+            // 6. Thông báo cho Admin
+            const admins = await tx.user.findMany({ where: { role: 'admin' } });
+            await tx.notification.createMany({
+                data: admins.map(admin => ({
+                    userId: admin.id,
+                    title: 'Đơn hàng mới',
+                    message: `Có đơn hàng mới #${order.id} từ khách hàng ${req.userId}`,
+                    type: 'order'
+                }))
+            });
+
             return order;
         });
 
@@ -162,6 +173,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res) => {
                         id: true,
                         name: true,
                         email: true,
+                        phone: true,
                     },
                 },
             },
@@ -203,7 +215,26 @@ router.put('/:id/status', authenticate, requireAdmin, async (req: AuthRequest, r
                         product: true,
                     },
                 },
+                user: true
             },
+        });
+
+        // Thông báo cho người dùng về việc cập nhật trạng thái
+        const statusMap: Record<string, string> = {
+            'pending': 'đang chờ xử lý',
+            'processing': 'đang được chuẩn bị',
+            'shipped': 'đang được giao',
+            'delivered': 'đã giao thành công',
+            'cancelled': 'đã bị hủy'
+        };
+
+        await prisma.notification.create({
+            data: {
+                userId: order.userId,
+                title: 'Cập nhật đơn hàng',
+                message: `Đơn hàng #${order.id} của bạn ${statusMap[status] || status}.`,
+                type: 'order'
+            }
         });
 
         res.json(order);
@@ -228,6 +259,7 @@ router.get('/admin/all', authenticate, requireAdmin, async (req: AuthRequest, re
                         id: true,
                         name: true,
                         email: true,
+                        phone: true,
                     },
                 },
             },
