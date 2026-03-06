@@ -1,8 +1,8 @@
 
-import React, { useState, useMemo } from 'react';
-import { CartItem, Page, Product, User } from '../types';
+import React, { useState, useMemo, useEffect } from 'react';
+import { CartItem, Page, Product, User, Address } from '../types';
 import { PRODUCTS } from '../constants';
-import { orderAPI } from '../services/apiService';
+import { orderAPI, userAPI, voucherAPI } from '../services/apiService';
 
 interface CheckoutProps {
   cart: CartItem[];
@@ -17,18 +17,112 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, onNavigate, onAddToCart, user
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    email: '',
+    name: user?.name || '',
+    phone: user?.phone || '',
+    email: user?.email || '',
     address: '',
     city: '',
     district: '',
     paymentMethod: 'cod',
   });
 
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>('new');
+
+  const [voucherCode, setVoucherCode] = useState('');
+  const [appliedVoucher, setAppliedVoucher] = useState<any>(null);
+  const [availableVouchers, setAvailableVouchers] = useState<any[]>([]);
+  const [isVerifyingVoucher, setIsVerifyingVoucher] = useState(false);
+
+  useEffect(() => {
+    const fetchVouchers = async () => {
+      try {
+        const data = await voucherAPI.getAll();
+        setAvailableVouchers(data);
+      } catch (error) {
+        console.error('Lỗi khi tải voucher:', error);
+      }
+    };
+    if (user) fetchVouchers();
+  }, [user]);
+
+  const handleApplyVoucher = async () => {
+    if (!voucherCode) return;
+    try {
+      setIsVerifyingVoucher(true);
+      setError('');
+      const data = await voucherAPI.verify(voucherCode, subtotal);
+      setAppliedVoucher(data);
+      setVoucherCode(data.code);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Mã giảm giá không hợp lệ');
+      setAppliedVoucher(null);
+    } finally {
+      setIsVerifyingVoucher(false);
+    }
+  };
+
+  const removeVoucher = () => {
+    setAppliedVoucher(null);
+    setVoucherCode('');
+  };
+
+  useEffect(() => {
+    if (user) {
+      const fetchAddresses = async () => {
+        try {
+          const profile = await userAPI.getProfile();
+          const userAddresses = profile.addresses || [];
+          setAddresses(userAddresses);
+
+          const defaultAddr = userAddresses.find((a: Address) => a.isDefault);
+          if (defaultAddr) {
+            setSelectedAddressId(defaultAddr.id);
+            setFormData(prev => ({
+              ...prev,
+              name: defaultAddr.name,
+              phone: defaultAddr.phone,
+              address: defaultAddr.detail,
+              district: defaultAddr.district,
+              city: defaultAddr.province
+            }));
+          }
+        } catch (error) {
+          console.error('Lỗi khi tải địa chỉ:', error);
+        }
+      };
+      fetchAddresses();
+    }
+  }, [user]);
+
+  const handleAddressSelect = (addr: Address) => {
+    setSelectedAddressId(addr.id);
+    setFormData(prev => ({
+      ...prev,
+      name: addr.name,
+      phone: addr.phone,
+      address: addr.detail,
+      district: addr.district,
+      city: addr.province
+    }));
+  };
+
+  const handleAddNewAddress = () => {
+    setSelectedAddressId('new');
+    setFormData(prev => ({
+      ...prev,
+      name: user?.name || '',
+      phone: user?.phone || '',
+      address: '',
+      district: '',
+      city: ''
+    }));
+  };
+
   const subtotal = useMemo(() => cart.reduce((acc, item) => acc + (item.price * item.quantity), 0), [cart]);
   const shipping = 0;
-  const total = subtotal + shipping;
+  const discountAmount = appliedVoucher ? appliedVoucher.discountAmount : 0;
+  const total = subtotal + shipping - discountAmount;
 
   const handleNextStep = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +146,9 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, onNavigate, onAddToCart, user
             productId: item.id,
             quantity: item.quantity,
             price: item.price
-          }))
+          })),
+          voucherId: appliedVoucher?.voucherId,
+          discountAmount: appliedVoucher?.discountAmount || 0
         };
 
         const order = await orderAPI.create(orderData);
@@ -127,87 +223,126 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, onNavigate, onAddToCart, user
                   <h2 className="text-2xl font-black font-display tracking-tight">Thông tin giao hàng</h2>
                 </div>
 
-                <div className="grid gap-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <label className="flex flex-col gap-2">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Họ và tên</span>
-                      <input
-                        required
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                        placeholder="Nguyễn Văn A"
-                        type="text"
-                      />
-                    </label>
-                    <label className="flex flex-col gap-2">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Số điện thoại</span>
-                      <input
-                        required
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                        placeholder="0901234567"
-                        type="tel"
-                      />
-                    </label>
-                  </div>
-                  <label className="flex flex-col gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Email (Để nhận hóa đơn)</span>
-                    <input
-                      required
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                      placeholder="example@email.com"
-                      type="email"
-                    />
-                  </label>
-                  <label className="flex flex-col gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Địa chỉ nhận hàng</span>
-                    <input
-                      required
-                      value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                      placeholder="Số nhà, tên đường, phường/xã..."
-                      type="text"
-                    />
-                  </label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <label className="flex flex-col gap-2">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Tỉnh / Thành phố</span>
-                      <select
-                        required
-                        value={formData.city}
-                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                        className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none cursor-pointer"
+                <div className="space-y-6">
+                  {addresses.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                      {addresses.map((addr) => (
+                        <div
+                          key={addr.id}
+                          onClick={() => handleAddressSelect(addr)}
+                          className={`p-5 rounded-2xl border-2 transition-all cursor-pointer relative group ${selectedAddressId === addr.id
+                            ? 'border-primary bg-primary/5 ring-4 ring-primary/10'
+                            : 'border-slate-100 dark:border-surface-border hover:border-slate-200'
+                            }`}
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <span className="material-symbols-outlined text-primary !text-[18px]">
+                                {addr.type === 'home' ? 'home' : 'business'}
+                              </span>
+                              <span className="text-xs font-black uppercase tracking-widest">{addr.name}</span>
+                            </div>
+                            {addr.isDefault && (
+                              <span className="text-[8px] font-black uppercase tracking-tighter bg-primary text-white px-2 py-0.5 rounded-full">Mặc định</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-500 mb-1 font-bold">{addr.phone}</p>
+                          <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                            {addr.detail}, {addr.ward}, {addr.district}, {addr.province}
+                          </p>
+                          <div className={`absolute top-4 right-4 size-5 rounded-full border-2 flex items-center justify-center transition-all ${selectedAddressId === addr.id ? 'border-primary bg-primary' : 'border-slate-200 bg-white'
+                            }`}>
+                            {selectedAddressId === addr.id && <span className="material-symbols-outlined text-white !text-[14px]">check</span>}
+                          </div>
+                        </div>
+                      ))}
+                      <div
+                        onClick={handleAddNewAddress}
+                        className={`p-5 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-3 transition-all cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 ${selectedAddressId === 'new' ? 'border-primary bg-primary/5' : 'border-slate-200 dark:border-surface-border text-slate-400'
+                          }`}
                       >
-                        <option disabled value="">Chọn Tỉnh / Thành phố</option>
-                        <option value="hanoi">Hà Nội</option>
-                        <option value="hcm">TP. Hồ Chí Minh</option>
-                        <option value="danang">Đà Nẵng</option>
-                      </select>
-                    </label>
-                    <label className="flex flex-col gap-2">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Quận / Huyện</span>
-                      <select
-                        required
-                        value={formData.district}
-                        onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-                        className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none cursor-pointer"
-                      >
-                        <option disabled value="">Chọn Quận / Huyện</option>
-                        <option value="district1">Quận 1</option>
-                        <option value="district3">Quận 3</option>
-                        <option value="district10">Quận 10</option>
-                      </select>
-                    </label>
-                  </div>
-                  <div className="flex items-center gap-3 pt-4">
-                    <input id="save-info" type="checkbox" className="size-5 rounded border-slate-300 dark:border-surface-border text-primary focus:ring-primary/20 bg-slate-50 dark:bg-black/20" />
-                    <label htmlFor="save-info" className="text-xs font-bold text-slate-500 dark:text-slate-400 cursor-pointer select-none">Lưu thông tin cho lần thanh toán sau</label>
-                  </div>
+                        <span className="material-symbols-outlined !text-[32px]">add_location_alt</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest">Sử dụng địa chỉ mới</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {(selectedAddressId === 'new' || addresses.length === 0) && (
+                    <div className="grid gap-6 animate-in fade-in duration-500">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <label className="flex flex-col gap-2">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Họ và tên người nhận</span>
+                          <input
+                            required
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                            placeholder="Nguyễn Văn A"
+                            type="text"
+                          />
+                        </label>
+                        <label className="flex flex-col gap-2">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Số điện thoại</span>
+                          <input
+                            required
+                            value={formData.phone}
+                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                            className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                            placeholder="0901234567"
+                            type="tel"
+                          />
+                        </label>
+                      </div>
+                      <label className="flex flex-col gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Email nhận thông báo</span>
+                        <input
+                          required
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                          placeholder="example@email.com"
+                          type="email"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Địa chỉ cụ thể (Số nhà, đường...)</span>
+                        <input
+                          required
+                          value={formData.address}
+                          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                          className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                          placeholder="Số nhà, tên đường, phường/xã..."
+                          type="text"
+                        />
+                      </label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <label className="flex flex-col gap-2">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Tỉnh / Thành phố</span>
+                          <input
+                            required
+                            placeholder="VD: Hà Nội"
+                            value={formData.city}
+                            onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                            className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                          />
+                        </label>
+                        <label className="flex flex-col gap-2">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Quận / Huyện</span>
+                          <input
+                            required
+                            placeholder="VD: Quận Cầu Giấy"
+                            value={formData.district}
+                            onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+                            className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                          />
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-3 pt-4">
+                        <input id="save-info" type="checkbox" className="size-5 rounded border-slate-300 dark:border-surface-border text-primary focus:ring-primary/20 bg-slate-50 dark:bg-black/20" />
+                        <label htmlFor="save-info" className="text-xs font-bold text-slate-500 dark:text-slate-400 cursor-pointer select-none">Lưu làm địa chỉ mặc định</label>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </section>
             )}
@@ -290,9 +425,53 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, onNavigate, onAddToCart, user
                 ))}
               </div>
 
-              <div className="flex gap-2 mb-8">
-                <input className="flex-1 h-12 rounded-xl bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-surface-border text-xs px-4 focus:ring-2 focus:ring-primary/20 outline-none" placeholder="Mã giảm giá" type="text" />
-                <button className="h-12 px-6 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-900 dark:text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all">Áp dụng</button>
+              <div className="flex flex-col gap-3 mb-8">
+                <div className="flex gap-2">
+                  <input
+                    className="flex-1 h-12 rounded-xl bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-surface-border text-xs px-4 focus:ring-2 focus:ring-primary/20 outline-none"
+                    placeholder="Mã giảm giá"
+                    type="text"
+                    value={voucherCode}
+                    onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                    disabled={appliedVoucher}
+                  />
+                  {appliedVoucher ? (
+                    <button
+                      onClick={removeVoucher}
+                      type="button"
+                      className="h-12 px-6 bg-red-50 text-red-500 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all"
+                    >
+                      Hủy bỏ
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleApplyVoucher}
+                      type="button"
+                      disabled={isVerifyingVoucher || !voucherCode}
+                      className="h-12 px-6 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-900 dark:text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all disabled:opacity-50"
+                    >
+                      {isVerifyingVoucher ? 'Đang kiểm tra...' : 'Áp dụng'}
+                    </button>
+                  )}
+                </div>
+
+                {availableVouchers.length > 0 && !appliedVoucher && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {availableVouchers.slice(0, 3).map(v => (
+                      <button
+                        key={v.id}
+                        type="button"
+                        onClick={() => {
+                          setVoucherCode(v.code);
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/40 text-[9px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest hover:bg-orange-100 transition-all flex items-center gap-1.5"
+                      >
+                        <span className="material-symbols-outlined !text-[12px]">sell</span>
+                        {v.code}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="border-t border-slate-100 dark:border-surface-border pt-6 space-y-4">
@@ -300,6 +479,12 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, onNavigate, onAddToCart, user
                   <span>Tạm tính</span>
                   <span className="text-slate-900 dark:text-white">{subtotal.toLocaleString('vi-VN')}₫</span>
                 </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-xs font-bold text-green-500">
+                    <span>Giảm giá ({appliedVoucher?.code})</span>
+                    <span>-{discountAmount.toLocaleString('vi-VN')}₫</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-xs font-bold text-slate-500">
                   <span>Phí vận chuyển</span>
                   <span className="text-green-500 uppercase tracking-widest text-[10px]">Miễn phí</span>

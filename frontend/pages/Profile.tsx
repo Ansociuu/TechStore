@@ -42,6 +42,14 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
     promo: true
   });
 
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
   // Fetch full user profile on mount
   useEffect(() => {
     const fetchFullProfile = async () => {
@@ -89,6 +97,7 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
         id: `#ORD-${order.id}`,
         date: new Date(order.createdAt).toLocaleDateString('vi-VN'),
         total: order.total,
+        discountAmount: order.discountAmount || 0,
         status: orderAPI.getStatusLabel(order.status),
         trackingStep: 1,
         paymentMethod: order.paymentMethod === 'cod' ? 'Thanh toán khi nhận hàng' : 'Thanh toán online',
@@ -184,6 +193,45 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
     }
   };
 
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      alert('Mật khẩu xác nhận không khớp');
+      return;
+    }
+    try {
+      setIsSaving(true);
+      await userAPI.changePassword({
+        oldPassword: passwordForm.oldPassword,
+        newPassword: passwordForm.newPassword
+      });
+      alert('Đổi mật khẩu thành công');
+      setIsChangingPassword(false);
+      setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Lỗi khi đổi mật khẩu');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingAvatar(true);
+      const res = await userAPI.uploadAvatar(file);
+      onUpdateUser({ ...user, avatar: res.url });
+      alert('Cập nhật ảnh đại diện thành công');
+    } catch (error) {
+      console.error('Lỗi upload avatar:', error);
+      alert('Không thể upload ảnh');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Navigation Back */}
@@ -201,10 +249,17 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
           <div className="bg-white dark:bg-surface-dark rounded-3xl border border-slate-100 dark:border-surface-border overflow-hidden sticky top-24 shadow-sm">
             <div className="p-8 border-b border-slate-100 dark:border-surface-border flex flex-col items-center text-center gap-4">
               <div className="size-24 rounded-full border-4 border-primary/20 p-1 relative">
-                <img src={user.avatar} alt={user.name} className="size-full rounded-full object-cover" />
-                <button className="absolute bottom-0 right-0 size-8 bg-primary text-white rounded-full border-2 border-white dark:border-surface-dark flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                {isUploadingAvatar ? (
+                  <div className="size-full rounded-full bg-slate-100 dark:bg-black/20 flex items-center justify-center">
+                    <div className="size-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                  </div>
+                ) : (
+                  <img src={user.avatar} alt={user.name} className="size-full rounded-full object-cover" />
+                )}
+                <label className="absolute bottom-0 right-0 size-8 bg-primary text-white rounded-full border-2 border-white dark:border-surface-dark flex items-center justify-center shadow-lg hover:scale-110 transition-transform cursor-pointer">
                   <span className="material-symbols-outlined !text-[16px]">photo_camera</span>
-                </button>
+                  <input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload} />
+                </label>
               </div>
               <div>
                 <h3 className="text-lg font-black font-display">{user.name}</h3>
@@ -410,9 +465,16 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
                         </div>
                       ))}
                       <div className="pt-6 border-t border-slate-100 dark:border-surface-border flex flex-col md:flex-row justify-between items-center gap-6">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-slate-500">Tổng thanh toán:</span>
-                          <span className="text-lg font-black text-primary">{order.total.toLocaleString('vi-VN')}₫</span>
+                        <div className="flex flex-col items-end gap-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-500">Tổng thanh toán:</span>
+                            <span className="text-lg font-black text-primary">{order.total.toLocaleString('vi-VN')}₫</span>
+                          </div>
+                          {(order as any).discountAmount > 0 && (
+                            <span className="text-[10px] font-bold text-green-500">
+                              Tiết kiệm: {(order as any).discountAmount.toLocaleString('vi-VN')}₫
+                            </span>
+                          )}
                         </div>
                         <span className="text-[10px] font-black uppercase text-primary tracking-widest group-hover:translate-x-1 transition-transform flex items-center gap-2">
                           Xem chi tiết <span className="material-symbols-outlined !text-[16px]">arrow_forward</span>
@@ -615,7 +677,10 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
                   <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] border border-slate-100 dark:border-surface-border p-8 shadow-sm">
                     <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6">Bảo mật</h3>
                     <div className="space-y-4">
-                      <button className="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-surface-border hover:border-primary transition-all">
+                      <button
+                        onClick={() => setIsChangingPassword(true)}
+                        className="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-surface-border hover:border-primary transition-all"
+                      >
                         <div className="flex items-center gap-3">
                           <span className="material-symbols-outlined text-primary">key</span>
                           <span className="text-xs font-bold font-display">Đổi mật khẩu</span>
@@ -645,6 +710,63 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
           )}
         </div>
       </div>
+
+      {/* Modal Đổi mật khẩu */}
+      {isChangingPassword && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-surface-dark w-full max-w-md rounded-[2.5rem] p-10 border border-slate-100 dark:border-surface-border shadow-2xl animate-in zoom-in-95 duration-300">
+            <h3 className="text-2xl font-black font-display mb-8">Đổi mật khẩu</h3>
+            <form onSubmit={handlePasswordChange} className="space-y-6">
+              <label className="flex flex-col gap-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Mật khẩu cũ</span>
+                <input
+                  type="password"
+                  value={passwordForm.oldPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })}
+                  className="h-14 rounded-2xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-6 text-sm font-bold outline-none focus:border-primary"
+                  required
+                />
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Mật khẩu mới</span>
+                <input
+                  type="password"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                  className="h-14 rounded-2xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-6 text-sm font-bold outline-none focus:border-primary"
+                  required
+                />
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Xác nhận mật khẩu mới</span>
+                <input
+                  type="password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                  className="h-14 rounded-2xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-6 text-sm font-bold outline-none focus:border-primary"
+                  required
+                />
+              </label>
+              <div className="flex gap-4 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsChangingPassword(false)}
+                  className="flex-1 px-6 py-4 rounded-2xl border border-slate-100 dark:border-surface-border text-xs font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-white/5 transition-all"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="flex-1 px-6 py-4 rounded-2xl bg-primary text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all disabled:opacity-50"
+                >
+                  {isSaving ? 'Đang lưu...' : 'Cập nhật'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

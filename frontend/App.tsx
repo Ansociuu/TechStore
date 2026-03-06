@@ -15,7 +15,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import OrderSuccess from './pages/OrderSuccess';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
-import PaymentResult from './pages/PaymentResult';
+
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>(Page.HOME);
@@ -58,8 +58,6 @@ const App: React.FC = () => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('token')) {
       setCurrentPage(Page.RESET_PASSWORD);
-    } else if (urlParams.has('vnp_ResponseCode')) {
-      setCurrentPage(Page.PAYMENT_RESULT);
     }
   }, []);
 
@@ -346,9 +344,7 @@ const App: React.FC = () => {
           <ResetPassword onNavigate={setCurrentPage} />
         )}
 
-        {currentPage === Page.PAYMENT_RESULT && (
-          <PaymentResult onNavigate={setCurrentPage} />
-        )}
+
       </main>
 
       <footer className="bg-white dark:bg-[#0b0f17] border-t border-slate-200 dark:border-surface-border pt-20 pb-10 transition-colors duration-300">

@@ -15,38 +15,43 @@ const getAIImage = (name: string, category: string): string => {
 async function main() {
     console.log('🌱 Bắt đầu seed data...');
 
-    // Xóa dữ liệu cũ để tránh trùng lặp
-    console.log('🗑️  Xóa dữ liệu cũ...');
-    await prisma.cartItem.deleteMany();
-    await prisma.cart.deleteMany();
-    await prisma.orderItem.deleteMany();
-    await prisma.order.deleteMany();
-    await prisma.product.deleteMany();
-    await prisma.user.deleteMany();
+    // // Xóa dữ liệu cũ để tránh trùng lặp
+    // console.log('🗑️  Xóa dữ liệu cũ...');
+    // await prisma.cartItem.deleteMany();
+    // await prisma.cart.deleteMany();
+    // await prisma.orderItem.deleteMany();
+    // await prisma.order.deleteMany();
+    // await prisma.product.deleteMany();
+    // await prisma.user.deleteMany();
+    // await prisma.voucher.deleteMany(); 
 
     // Tạo tài khoản Admin
     const adminPassword = await bcrypt.hash('admin123', 10);
-    const admin = await prisma.user.create({
-        data: {
+    const admin = await prisma.user.upsert({
+        where: { email: 'admin@techstore.com' },
+        update: { password: adminPassword }, // Cập nhật pass mới nếu có
+        create: {
             email: 'admin@techstore.com',
             password: adminPassword,
             name: 'Admin TechStore',
             role: 'admin',
         },
     });
-    console.log('✅ Tạo Admin:', admin.email);
+    console.log('✅ TechStore Admin:', admin.email);
 
     // Tạo tài khoản User mẫu
     const userPassword = await bcrypt.hash('user123', 10);
-    const user = await prisma.user.create({
-        data: {
+    const user = await prisma.user.upsert({
+        where: { email: 'user@techstore.com' },
+        update: { password: userPassword },
+        create: {
             email: 'user@techstore.com',
             password: userPassword,
             name: 'Nguyễn Văn A',
             role: 'user',
         },
     });
-    console.log('✅ Tạo User:', user.email);
+    console.log('✅ Tài khoản mẫu:', user.email);
 
     // Danh sách sản phẩm đa dạng với thông số thật
     const products = [
@@ -227,6 +232,45 @@ async function main() {
         });
         console.log(`[${index + 1}/${products.length}] ✅ Đã tạo: ${p.name}`);
     }
+
+    // Tạo Voucher mẫu
+    console.log('🎟️  Tạo Voucher...');
+    const voucherData = [
+        {
+            code: 'TECHSTORE10',
+            discount: 10,
+            type: 'percentage',
+            minOrder: 1000000,
+            maxDiscount: 500000,
+            endDate: new Date('2026-12-31'),
+            usageLimit: 100
+        },
+        {
+            code: 'HELLOSPRING',
+            discount: 200000,
+            type: 'fixed',
+            minOrder: 5000000,
+            endDate: new Date('2026-06-30'),
+            usageLimit: 50
+        },
+        {
+            code: 'FREESHIP',
+            discount: 50000,
+            type: 'fixed',
+            minOrder: 0,
+            endDate: new Date('2026-12-31'),
+            usageLimit: null
+        }
+    ];
+
+    for (const v of voucherData) {
+        await prisma.voucher.upsert({
+            where: { code: v.code },
+            update: v,
+            create: v
+        });
+    }
+    console.log('✅ Đã tạo/cập nhật các Voucher mẫu');
 
     console.log('🎉 Seed data hoàn tất!');
     console.log('\n📝 Thông tin đăng nhập:');

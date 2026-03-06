@@ -105,17 +105,39 @@ Giao diện người dùng đã được định hình trước qua quá trình 
 
 ## 3. Một số thành phần khác của đồ án
 
-### 3.1 Kế hoạch dự án
-Nhóm đã phát hành và tuân thủ chặt chẽ biểu đồ thời gian triển khai (Gantt Chart timeline):
+### 3.1 Phân công công việc
+Dưới đây là bảng phân công công việc chi tiết của nhóm trong suốt quá trình phát triển dự án. Lê Phạm Thành Đạt đóng vai trò là nhà phát triển chính (Lead Developer), đảm nhận khối lượng kỹ thuật lớn, trong khi Nguyễn Văn An giữ vai trò Nhóm trưởng kết hợp phân tích, thiết kế và hỗ trợ phát triển các module cốt lõi.
 
-| Giai đoạn | Công việc | Thời gian | Thành viên |
-|-----------|-----------|-----------|------------|
-| 1 | Phân tích yêu cầu & Viết đặc tả | Tuần 1 | Cả nhóm |
-| 2 | Thiết kế ERD Database, vẽ Mockup UI | Tuần 2 | Thành viên A |
-| 3 | Xây dựng lõi Backend RESTful API (Auth, Product, Cart) | Tuần 3-4 | Thành viên B |
-| 4 | Lập trình Frontend React tích hợp Redux/State | Tuần 4-5 | Thành viên C |
-| 5 | Tích hợp sâu thư viện AI Gemini vào hệ thống | Tuần 6 | Cả nhóm |
-| 6 | UAT (Kiểm thử chức năng), Sửa lỗi, Biên dịch & Viết báo cáo | Tuần 7 | Cả nhóm |
+| Tên Công Việc | Nguyễn Văn An (Nhóm trưởng) | Lê Phạm Thành Đạt |
+| --- | :---: | :---: |
+| **1. Phân tích và thiết kế** | | |
+| 1.1. Phân tích và thiết kế kiến trúc hệ thống | 60% | 40% |
+| 1.2. Lên kế hoạch chi tiết, quản lý tiến độ dự án | 75% | 25% |
+| 1.3. Thiết kế Cơ sở dữ liệu (Prisma Schema), thiết lập môi trường | 35% | 65% |
+| 1.4. Thiết kế sơ đồ UML, nghiên cứu UX/UI / Figma | 45% | 55% |
+| **2. Phát triển chức năng Cửa Hàng (Storefront)** | | |
+| 2.1. Phát triển giao diện đăng nhập/đăng ký & layout chính | 35% | 65% |
+| 2.2. Xây dựng module xác thực (JWT, Email, Bcrypt) & API | 40% | 60% |
+| 2.3. Xây dựng trang danh sách, tìm kiếm & bộ lọc sản phẩm | 30% | 70% |
+| 2.4. Phát triển chức năng Giỏ hàng & luồng mua hàng | 35% | 65% |
+| **3. Phát triển chức năng Quản trị (Admin)** | | |
+| 3.1. Thiết kế layout Dashboard & tích hợp biểu đồ thống kê | 55% | 45% |
+| 3.2. Quản lý hệ thống Sản phẩm & Danh mục (CRUD) | 30% | 70% |
+| 3.3. Quản lý trạng thái Đơn hàng & giao dịch | 40% | 60% |
+| 3.4. Quản lý người dùng & phân quyền hệ thống | 50% | 50% |
+| **4. Tính năng AI & Gợi ý (Recommendation)** | | |
+| 4.1. Tích hợp Trợ lý Ảo Chatbot (Google Gemini API) | 35% | 65% |
+| 4.2. Viết thuật toán Lọc cộng tác (Collaborative Filtering) | 25% | 75% |
+| 4.3. Xây dựng cơ chế chấm điểm aiScore phân tích hội thoại | 40% | 60% |
+| **5. Kiểm thử và Tối ưu** | | |
+| 5.1. Lập kế hoạch kiểm thử & chuẩn bị dữ liệu Seed | 65% | 35% |
+| 5.2. Kiểm thử và tối ưu tốc độ xử lý của API (Backend) | 30% | 70% |
+| 5.3. Kiểm tra hiển thị responsive trên các thiết bị mobile | 40% | 60% |
+| **6. Triển khai chính thức** | | |
+| 6.1. Triển khai CSDL MySQL & cấu hình Cloudinary | 35% | 65% |
+| 6.2. Triển khai hệ thống lên máy chủ thực tế (Cloud/VPS) | 30% | 70% |
+| 6.3. Kiểm tra bảo mật và tối ưu lần cuối giao diện | 50% | 50% |
+| **Tổng kết khối lượng công việc** | **~39%** | **~61%** |
 
 ### 3.2 Đảm bảo thực hiện đúng làm việc nhóm
 Nhóm quản lý vòng đời phát triển dự án bằng quy trình Agile/Scrum. Sử dụng nền tảng GitHub làm kho chứa mã nguồn, luân phiên phân công người review code thông qua Pull Request trước khi Merge (gộp) mã để tránh conflict. Tổ chức họp định kỳ vào mỗi cuối tuần qua Google Meet / Discord để rà soát tiến độ (Sprint Review).

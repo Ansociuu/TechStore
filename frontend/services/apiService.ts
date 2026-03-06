@@ -200,6 +200,20 @@ export const userAPI = {
     setDefaultAddress: async (id: string) => {
         const response = await apiClient.patch(`/users/addresses/${id}/default`);
         return response.data;
+    },
+    changePassword: async (passwordData: any) => {
+        const response = await apiClient.post('/users/change-password', passwordData);
+        return response.data;
+    },
+    uploadAvatar: async (file: File) => {
+        const formData = new FormData();
+        formData.append('image', file);
+        const response = await apiClient.post('/users/upload-avatar', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return response.data;
     }
 };
 
@@ -255,6 +269,18 @@ export const aiChatAPI = {
         const token = localStorage.getItem('token');
         const endpoint = token ? '/ai/chat' : '/ai/chat/public';
         const response = await apiClient.post(endpoint, { message });
+        return response.data;
+    }
+};
+
+// Voucher API
+export const voucherAPI = {
+    getAll: async () => {
+        const response = await apiClient.get('/vouchers');
+        return response.data;
+    },
+    verify: async (code: string, orderTotal: number) => {
+        const response = await apiClient.post('/vouchers/verify', { code, orderTotal });
         return response.data;
     }
 };

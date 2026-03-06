@@ -11,6 +11,7 @@ import notificationRoutes from './routes/notification.routes';
 import userRoutes from './routes/user.routes';
 import recommendationRoutes from './routes/recommendation.routes';
 import aiRoutes from './routes/ai.routes';
+import voucherRoutes from './routes/voucher.routes';
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/vouchers', voucherRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {

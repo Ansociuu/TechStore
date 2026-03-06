@@ -35,9 +35,9 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
         }
 
         res.json(cart);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Lỗi khi lấy giỏ hàng:', error);
-        res.status(500).json({ error: 'Lỗi server' });
+        res.status(500).json({ error: 'Lỗi server', details: error.message });
     }
 });
 

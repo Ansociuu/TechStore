@@ -9,7 +9,7 @@ const router = express.Router();
 router.post('/', authenticate, async (req: AuthRequest, res) => {
     try {
         const userId = req.userId!;
-        const { shippingAddress, paymentMethod, items } = req.body;
+        const { shippingAddress, paymentMethod, items, voucherId, discountAmount } = req.body;
         console.log('[Order] Request Body:', JSON.stringify(req.body, null, 2));
 
         if (!items || !Array.isArray(items) || items.length === 0) {
@@ -38,10 +38,12 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
                         const lineTotal = (Number(item.price) || 0) * (Number(item.quantity) || 0);
                         console.log(`[Order] Item Product ${item.productId}: Price: ${item.price}, Qty: ${item.quantity}, Line total: ${lineTotal}`);
                         return sum + lineTotal;
-                    }, 0),
+                    }, 0) - (Number(discountAmount) || 0),
                     status: 'pending',
                     shippingAddress,
                     paymentMethod,
+                    voucherId: voucherId ? Number(voucherId) : null,
+                    discountAmount: Number(discountAmount) || 0,
                     items: {
                         create: items.map((item: any) => ({
                             productId: Number(item.productId),
@@ -67,16 +69,25 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
                 });
             }
 
-            // 4. Xóa các items trong giỏ hàng nếu order này được tạo từ giỏ hàng
-            // (Thường frontend sẽ gửi items từ giỏ hàng lên)
+            // 4. Xóa toàn bộ giỏ hàng
             const cart = await tx.cart.findUnique({ where: { userId } });
+            console.log(`[Order] Found cart for clearing:`, cart?.id);
             if (cart) {
-                await tx.cartItem.deleteMany({
-                    where: {
-                        cartId: cart.id,
-                        productId: { in: items.map((i: any) => Number(i.productId)) }
+                const deleted = await tx.cartItem.deleteMany({
+                    where: { cartId: cart.id }
+                });
+                console.log(`[Order] Deleted ${deleted.count} items from cart ${cart.id}`);
+            }
+
+            // 5. Cập nhật lượt sử dụng voucher
+            if (voucherId) {
+                await tx.voucher.update({
+                    where: { id: Number(voucherId) },
+                    data: {
+                        usageCount: { increment: 1 }
                     }
                 });
+                console.log(`[Order] Voucher ${voucherId} usage count incremented`);
             }
 
             return order;
@@ -224,9 +235,9 @@ router.get('/admin/all', authenticate, requireAdmin, async (req: AuthRequest, re
         });
 
         res.json(orders);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Lỗi khi lấy tất cả đơn hàng:', error);
-        res.status(500).json({ error: 'Lỗi server' });
+        res.status(500).json({ error: 'Lỗi khi lấy tất cả đơn hàng', details: error.message });
     }
 });
 

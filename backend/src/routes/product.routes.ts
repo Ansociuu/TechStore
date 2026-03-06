@@ -56,7 +56,19 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        const product = await prisma.product.findUnique({ where: { id: Number(id) } });
+        const product = await prisma.product.findUnique({
+            where: { id: Number(id) },
+            include: {
+                reviews: {
+                    include: {
+                        user: {
+                            select: { id: true, name: true, avatar: true }
+                        }
+                    },
+                    orderBy: { createdAt: 'desc' }
+                }
+            }
+        });
         if (!product) return res.status(404).json({ error: 'Không tìm thấy sản phẩm' });
         res.json(product);
     } catch (error) {
@@ -100,6 +112,69 @@ router.delete('/:id', authenticate, requireAdmin, async (req, res) => {
         res.json({ message: 'Đã xóa sản phẩm thành công' });
     } catch (error) {
         res.status(500).json({ error: 'Lỗi khi xóa sản phẩm' });
+    }
+});
+
+// Thêm đánh giá cho sản phẩm
+router.post('/:id/reviews', authenticate, async (req, res) => {
+    const { id } = req.params;
+    const { rating, comment } = req.body;
+    const userId = (req as any).user.userId;
+
+    try {
+        // Kiểm tra xem user đã mua sản phẩm này chưa (chỉ đếm đơn hàng không bị huỷ)
+        const hasPurchased = await prisma.orderItem.findFirst({
+            where: {
+                productId: Number(id),
+                order: {
+                    userId,
+                    status: {
+                        notIn: ['cancelled', 'payment_failed', 'pending'] // Chỉ cho phép đánh giá khi đơn đã xử lý thành công hoặc đang giao/đã giao
+                    }
+                }
+            }
+        });
+
+        if (!hasPurchased) {
+            return res.status(403).json({ error: 'Bạn chỉ có thể đánh giá sản phẩm đã mua thành công.' });
+        }
+
+        // Tạo review
+        const review = await prisma.review.create({
+            data: {
+                rating: Number(rating),
+                comment,
+                productId: Number(id),
+                userId,
+            },
+            include: {
+                user: {
+                    select: { id: true, name: true, avatar: true }
+                }
+            }
+        });
+
+        // Cập nhật rating và reviewCount cho Product
+        const allReviews = await prisma.review.findMany({
+            where: { productId: Number(id) }
+        });
+
+        const reviewCount = allReviews.length;
+        const totalRating = allReviews.reduce((sum, r) => sum + r.rating, 0);
+        const averageRating = reviewCount > 0 ? (totalRating / reviewCount) : 0;
+
+        await prisma.product.update({
+            where: { id: Number(id) },
+            data: {
+                rating: averageRating,
+                reviewCount
+            }
+        });
+
+        res.status(201).json(review);
+    } catch (error) {
+        console.error('Review error:', error);
+        res.status(500).json({ error: 'Lỗi khi gửi đánh giá' });
     }
 });
 
