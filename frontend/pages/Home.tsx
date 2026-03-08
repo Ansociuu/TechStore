@@ -23,6 +23,32 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
   const [currentGamingIndex, setCurrentGamingIndex] = useState(0);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeftState, setScrollLeftState] = useState(0);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollContainerRef.current) return;
+    setIsDragging(true);
+    setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
+    setScrollLeftState(scrollContainerRef.current.scrollLeft);
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !scrollContainerRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollContainerRef.current.offsetLeft;
+    const walk = (x - startX) * 2; // Scroll multiplier
+    scrollContainerRef.current.scrollLeft = scrollLeftState - walk;
+  };
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
@@ -238,16 +264,22 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
         ) : (
           <div
             ref={scrollContainerRef}
-            className="flex gap-6 overflow-x-auto snap-x snap-mandatory no-scrollbar px-2 pb-6"
+            onMouseDown={handleMouseDown}
+            onMouseLeave={handleMouseLeave}
+            onMouseUp={handleMouseUp}
+            onMouseMove={handleMouseMove}
+            className={`flex gap-6 overflow-x-auto snap-x snap-mandatory no-scrollbar px-2 pb-6 ${isDragging ? 'cursor-grabbing select-none snap-none' : 'cursor-grab'}`}
           >
             {aiPickProducts.map(p => (
               <div key={p.id} className="min-w-[280px] md:min-w-[320px] snap-start">
-                <ProductCard
-                  product={p}
-                  onSelect={onProductSelect}
-                  onAddToCart={onAddToCart}
-                  onBuyNow={onBuyNow}
-                />
+                <div className={isDragging ? 'pointer-events-none' : ''}>
+                  <ProductCard
+                    product={p}
+                    onSelect={onProductSelect}
+                    onAddToCart={onAddToCart}
+                    onBuyNow={onBuyNow}
+                  />
+                </div>
               </div>
             ))}
           </div>
