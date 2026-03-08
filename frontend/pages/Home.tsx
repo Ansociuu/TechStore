@@ -13,9 +13,44 @@ interface HomeProps {
 
 const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onNavigate }) => {
   const trending = products.slice(0, 4);
-  const featuredProduct = products.find(p => p.id === 'p2') || products[1] || products[0];
+  const heroProducts = products.slice(0, 5); // Get top 3 products for Hero Carousel
   const [cfRecommendations, setCfRecommendations] = useState<Product[]>([]);
   const [cfLoading, setCfLoading] = useState(false);
+  const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
+  const [currentGamingIndex, setCurrentGamingIndex] = useState(0);
+
+  const gamingPromos = [
+    {
+      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCSbw3lpVij8ArFHQaJPWCaOm1L8RHIOeMh5Qf6-zf1cPZpC97AwlLLggHWwG2XGFJJvPIN4M9Mqbt4leBMljHCjynsL4VupG6FLIT779DzcUevcgSE5cmlQEFrJEPvbjOyq6lFnXTrjVxfp2ruVyfy6BwBmRQIjQybcEoZJqzjwscr209dRa4kJku9FNP3Rpr222ZEo4frxuqO_GR_hxtck1kus-2QHp-PKPsud4Q6NelpbLsHXWY032UG6Z-rZjIzbau0yEYNMZw",
+      badge: "Gaming Gear",
+      title: "Nâng cấp góc máy,<br className='hidden md:block'/>chiến game cực đỉnh",
+      subtitle: "Giảm tới 30% cho các thiết bị gaming chuyên dụng."
+    },
+    {
+      image: "https://m.media-amazon.com/images/I/61yS6eRfOfL.jpg",
+      badge: "Mới ra mắt",
+      title: "Trải nghiệm mượt mà,<br className='hidden md:block'/>không độ trễ",
+      subtitle: "Bàn phím cơ dành cho game thủ chuyên nghiệp."
+    },
+    {
+      image: "https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?q=80&w=2000&auto=format&fit=crop",
+      badge: "Esports Pro",
+      title: "Thế giới ảo,<br className='hidden md:block'/>trải nghiệm thật",
+      subtitle: "Tay cầm chơi game, chiến mọi lúc mọi nơi."
+    }
+  ];
+
+  useEffect(() => {
+    // Auto slide timers
+    const heroTimer = setInterval(() => {
+      setCurrentHeroIndex(prev => (prev + 1) % Math.max(1, heroProducts.length));
+    }, 5000);
+    const gamingTimer = setInterval(() => {
+      setCurrentGamingIndex(prev => (prev + 1) % gamingPromos.length);
+    }, 6000);
+
+    return () => { clearInterval(heroTimer); clearInterval(gamingTimer); };
+  }, [heroProducts.length, gamingPromos.length]);
 
   useEffect(() => {
     const fetchCF = async () => {
@@ -57,61 +92,80 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onN
 
   return (
     <div className="flex flex-col gap-12 pb-20">
-      {/* Hero Section */}
-      <section className="relative w-full rounded-[2rem] overflow-hidden shadow-2xl bg-[#0b0f17] min-h-[450px] md:h-[550px] group border border-white/5">
-        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent z-10 pointer-events-none"></div>
-        <div className="flex h-full relative">
-          {/* Content side */}
-          <div className="relative z-20 flex flex-col justify-center p-8 md:p-16 lg:p-20 gap-8 w-full md:w-1/2">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/20 border border-primary/30 w-fit backdrop-blur-md">
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-              <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Mới ra mắt</span>
-            </div>
-            <div className="space-y-4">
-              <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-[0.9] tracking-tighter text-white font-display">
-                {featuredProduct?.name || 'Sản phẩm nổi bật'} <br className="hidden lg:block" />
-              </h1>
-              <p className="text-lg md:text-xl text-slate-300 font-light max-w-md leading-relaxed">
-                {featuredProduct?.description || 'Khám phá công nghệ mới nhất tại TechStore'}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-4 pt-4">
-              <button
-                onClick={() => featuredProduct && onProductSelect(featuredProduct)}
-                disabled={!featuredProduct}
-                className="h-14 px-10 rounded-2xl bg-primary hover:bg-primary-dark text-white font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-primary/30 flex items-center gap-3 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Mua Ngay
-                <span className="material-symbols-outlined !text-[20px]">arrow_forward</span>
-              </button>
-              <button
-                onClick={() => featuredProduct && onProductSelect(featuredProduct)}
-                disabled={!featuredProduct}
-                className="h-14 px-10 rounded-2xl bg-white/5 hover:bg-white/10 text-white font-black text-xs uppercase tracking-widest backdrop-blur-md transition-all border border-white/10 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Xem chi tiết
-              </button>
-            </div>
-          </div>
+      {/* Hero Section Carousel */}
+      <section className="relative w-full rounded-[2rem] overflow-hidden shadow-2xl bg-[#0b0f17] min-h-[500px] md:h-[550px] group border border-white/5">
+        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent z-10 pointer-events-none"></div>
 
-          {/* Image side - FIXED */}
-          <div className="absolute right-0 top-0 w-full md:w-3/5 h-full overflow-hidden">
-            {featuredProduct?.image ? (
-              <img
-                src={featuredProduct.image}
-                alt={featuredProduct.name || "Featured Product"}
-                className="w-full h-full object-cover object-center transform transition-transform duration-[3s] group-hover:scale-105"
-              />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-primary/20 to-indigo-500/20 flex items-center justify-center">
-                <span className="material-symbols-outlined !text-[120px] text-white/20">image</span>
+        {heroProducts.map((p, index) => (
+          <div key={p.id} className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${index === currentHeroIndex ? 'opacity-100 z-20' : 'opacity-0 z-0 pointer-events-none'}`}>
+
+            {/* Background Base (Dùng màu nền đậm để phần chữ luôn rõ ràng) */}
+            <div className="absolute inset-0 bg-[#0b0f17] z-0"></div>
+
+            {/* Lớp ảnh: Tràn viền bên Phải, Trên và Dưới (Desktop) | Trên, Trái, Phải (Mobile) */}
+            <div className="absolute top-0 right-0 w-full md:w-[60%] h-[48%] md:h-full overflow-hidden pointer-events-none z-10">
+              {p.image && (
+                <img
+                  src={p.image}
+                  alt={p.name}
+                  className={`w-full h-full object-cover object-center md:object-right transform transition-all duration-[6s] ease-out ${index === currentHeroIndex ? 'scale-105 opacity-100' : 'scale-115 opacity-0'} [mask-image:linear-gradient(to_bottom,black_80%,transparent_100%)] md:[mask-image:linear-gradient(to_right,transparent_0%,black_35%,black_100%)]`}
+                />
+              )}
+              {/* Subtle overlay for the faded edge */}
+              <div className="absolute inset-0 bg-gradient-to-r from-[#0b0f17] via-transparent to-transparent hidden md:block z-20 w-[40%]"></div>
+            </div>
+
+            {/* Content Side - Positioned for balance over the full-bleed backdrop */}
+            <div className="relative z-30 flex flex-col justify-end md:justify-center p-6 sm:p-10 md:p-16 lg:p-20 gap-4 md:gap-6 w-full md:w-[60%] lg:w-1/2 h-full pb-16 md:pb-0">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/20 border border-primary/30 w-fit backdrop-blur-md">
+                <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">{p.category || 'Sản phẩm nổi bật'}</span>
               </div>
-            )}
-            {/* Blend mask */}
-            <div className="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-[#0b0f17] hidden md:block"></div>
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0b0f17] to-transparent md:hidden"></div>
+
+              <div className="space-y-3 md:space-y-4">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-black leading-[1.05] tracking-tighter text-white font-display drop-shadow-2xl line-clamp-2 md:line-clamp-3">
+                  {p.name}
+                </h1>
+                <p className="text-sm md:text-lg text-slate-300 font-light max-w-md leading-relaxed line-clamp-2">
+                  {p.description || 'Khám phá công nghệ mới nhất tại TechStore với hàng ngàn ưu đãi hấp dẫn.'}
+                </p>
+                <div className="text-xl lg:text-3xl font-bold text-white pt-1">
+                  {p.price.toLocaleString('vi-VN')}đ
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 pt-2 md:pt-4">
+                <button
+                  onClick={() => onProductSelect(p)}
+                  className="group/btn h-11 md:h-14 px-6 md:px-10 rounded-2xl bg-primary hover:bg-primary-dark text-white font-bold text-xs sm:text-sm tracking-wide transition-all shadow-lg shadow-primary/40 flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-95 border border-primary-light/30 flex-shrink-0"
+                >
+                  Mua Ngay
+                  <span className="material-symbols-outlined !text-[18px] transition-transform group-hover/btn:translate-x-1">arrow_forward</span>
+                </button>
+                <button
+                  onClick={() => onProductSelect(p)}
+                  className="h-11 md:h-14 px-6 md:px-10 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs sm:text-sm tracking-wide backdrop-blur-xl transition-all border border-white/20 hover:border-white/30 active:scale-95 flex items-center justify-center gap-2 flex-shrink-0"
+                >
+                  Chi tiết
+                </button>
+
+                {/* Carousel Indicators */}
+                <div className="flex gap-1.5 items-center pl-2 md:pl-4">
+                  {heroProducts.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={(e) => { e.stopPropagation(); setCurrentHeroIndex(i); }}
+                      className={`h-1.5 rounded-full transition-all duration-300 ${i === currentHeroIndex ? 'w-6 bg-primary' : 'w-1.5 bg-white/30 hover:bg-white/50'}`}
+                      aria-label={`Carousel slide ${i + 1}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+
           </div>
-        </div>
+        ))}
       </section>
 
       {/* Feature Grid */}
@@ -194,28 +248,56 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onN
         )}
       </section>
 
-      {/* Gaming Banner */}
+      {/* Gaming Banner Carousel */}
       <section
         onClick={() => onNavigate(Page.LISTING)}
         className="rounded-[2.5rem] overflow-hidden relative min-h-[300px] flex items-center group cursor-pointer shadow-2xl"
       >
-        <img
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSbw3lpVij8ArFHQaJPWCaOm1L8RHIOeMh5Qf6-zf1cPZpC97AwlLLggHWwG2XGFJJvPIN4M9Mqbt4leBMljHCjynsL4VupG6FLIT779DzcUevcgSE5cmlQEFrJEPvbjOyq6lFnXTrjVxfp2ruVyfy6BwBmRQIjQybcEoZJqzjwscr209dRa4kJku9FNP3Rpr222ZEo4frxuqO_GR_hxtck1kus-2QHp-PKPsud4Q6NelpbLsHXWY032UG6Z-rZjIzbau0yEYNMZw"
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-          alt="Gaming Setup"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent"></div>
-        <div className="relative z-10 p-10 md:p-16 flex flex-col gap-4 items-start">
-          <span className="bg-primary text-white text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-widest">Gaming Gear</span>
-          <h3 className="text-3xl md:text-5xl font-black text-white font-display max-w-xl leading-tight tracking-tighter">Nâng cấp góc máy, chiến game cực đỉnh</h3>
-          <p className="text-slate-300 text-lg font-light mb-4">Giảm tới 30% cho các thiết bị gaming chuyên dụng.</p>
-          <button
-            onClick={(e) => { e.stopPropagation(); onNavigate(Page.LISTING); }}
-            className="px-10 py-4 bg-white text-slate-900 font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-primary hover:text-white transition-all shadow-2xl flex items-center gap-3"
-          >
-            Khám phá ngay
-            <span className="material-symbols-outlined !text-[18px]">arrow_forward</span>
-          </button>
+        {gamingPromos.map((promo, index) => (
+          <div key={index} className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentGamingIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
+            <img
+              src={promo.image}
+              className={`absolute inset-0 w-full h-full object-cover origin-center transform transition-transform duration-[6s] ease-out ${index === currentGamingIndex ? 'scale-105' : 'scale-100'}`}
+              alt={promo.badge}
+            />
+            {/* Dynamic Gradient Overlays */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 mix-blend-screen pointer-events-none z-10"></div>
+
+            <div className="relative z-20 p-10 md:p-16 flex flex-col gap-4 items-start max-w-2xl h-full justify-center">
+              <span className="bg-primary text-white text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-widest shadow-lg shadow-primary/30">
+                {promo.badge}
+              </span>
+
+              <h3
+                className="text-3xl md:text-5xl font-black text-white font-display max-w-xl leading-tight tracking-tighter drop-shadow-xl"
+                dangerouslySetInnerHTML={{ __html: promo.title }}
+              />
+
+              <p className="text-slate-300 text-lg md:text-xl font-light leading-relaxed max-w-lg mb-4">
+                {promo.subtitle}
+              </p>
+
+              <button
+                onClick={(e) => { e.stopPropagation(); onNavigate(Page.LISTING); }}
+                className="group/btn mt-2 px-8 py-4 bg-primary text-white font-bold text-sm tracking-wide rounded-2xl hover:bg-primary-dark transition-all shadow-[0_0_30px_-5px_var(--tw-shadow-color)] shadow-primary/40 flex items-center gap-3 hover:-translate-y-1 active:scale-95 border border-primary-light/30"
+              >
+                Khám phá trọn bộ
+                <span className="material-symbols-outlined !text-[20px] transition-transform group-hover/btn:translate-x-1">arrow_forward</span>
+              </button>
+            </div>
+          </div>
+        ))}
+        {/* Gaming Banner Indicators */}
+        <div className="absolute bottom-6 right-8 flex gap-2 z-30">
+          {gamingPromos.map((_, i) => (
+            <button
+              key={i}
+              onClick={(e) => { e.stopPropagation(); setCurrentGamingIndex(i); }}
+              className={`h-2 rounded-full transition-all duration-300 ${i === currentGamingIndex ? 'w-8 bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'w-2 bg-white/30 hover:bg-white/50'}`}
+              aria-label={`Carousel slide ${i + 1}`}
+            />
+          ))}
         </div>
       </section>
 
