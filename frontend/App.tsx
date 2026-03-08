@@ -331,6 +331,7 @@ const App: React.FC = () => {
                 products={products}
                 onProductSelect={handleProductSelect}
                 onAddToCart={handleAddToCart}
+                onBuyNow={handleBuyNow}
                 onNavigate={(page) => {
                   switch (page) {
                     case Page.LISTING: navigate('/listing'); break;

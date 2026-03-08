@@ -233,6 +233,7 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
                 product={p}
                 onSelect={onProductSelect}
                 onAddToCart={onAddToCart}
+                onBuyNow={onBuyNow}
               />
             ))}
           </div>
@@ -318,6 +319,7 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
                 product={p}
                 onSelect={onProductSelect}
                 onAddToCart={onAddToCart}
+                onBuyNow={onBuyNow}
               />
             ))}
           </div>

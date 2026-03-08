@@ -8,12 +8,13 @@ interface ListingProps {
   products: Product[];
   onProductSelect: (product: Product) => void;
   onAddToCart: (product: Product) => void;
+  onBuyNow: (product: Product) => void;
   onNavigate: (page: Page) => void;
   searchQuery?: string;
   initialCategory?: string;
 }
 
-const Listing: React.FC<ListingProps> = ({ onProductSelect, onAddToCart, onNavigate, searchQuery = '', initialCategory = 'All' }) => {
+const Listing: React.FC<ListingProps> = ({ onProductSelect, onAddToCart, onBuyNow, onNavigate, searchQuery = '', initialCategory = 'All' }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState<any>(null);
@@ -186,6 +187,7 @@ const Listing: React.FC<ListingProps> = ({ onProductSelect, onAddToCart, onNavig
                   product={product}
                   onSelect={onProductSelect}
                   onAddToCart={onAddToCart}
+                  onBuyNow={onBuyNow}
                 />
               ))}
             </div>

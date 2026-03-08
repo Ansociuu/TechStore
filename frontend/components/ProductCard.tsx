@@ -6,9 +6,10 @@ interface ProductCardProps {
   product: Product;
   onSelect: (product: Product) => void;
   onAddToCart: (product: Product) => void;
+  onBuyNow: (product: Product) => void;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect, onAddToCart }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect, onAddToCart, onBuyNow }) => {
   return (
     <div className="group relative bg-white dark:bg-surface-dark border border-slate-100 dark:border-surface-border rounded-2xl overflow-hidden hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500 hover:-translate-y-1">
       {/* Badges */}
@@ -25,13 +26,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect, onAddToCar
       </div>
 
       {/* Image Container */}
-      <div 
+      <div
         className="relative aspect-[4/3] w-full bg-slate-50 dark:bg-black/40 overflow-hidden cursor-pointer"
         onClick={() => onSelect(product)}
       >
-        <img 
-          src={product.image} 
-          alt={product.name} 
+        <img
+          src={product.image}
+          alt={product.name}
           className="size-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
         />
         <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -39,36 +40,46 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect, onAddToCar
 
       {/* Content */}
       <div className="p-4 flex flex-col gap-3">
-        <div className="min-h-[40px]">
-          <h3 
-            className="text-sm font-black text-slate-900 dark:text-white line-clamp-1 hover:text-primary cursor-pointer transition-colors font-display tracking-tight"
+        <div className="min-h-[44px]">
+          <h3
+            className="text-base font-black text-slate-900 dark:text-white line-clamp-1 hover:text-primary cursor-pointer transition-colors font-display tracking-tight"
             onClick={() => onSelect(product)}
           >
             {product.name}
           </h3>
-          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{product.category}</p>
+          <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{product.category}</p>
         </div>
 
-        <div className="flex flex-col gap-2 pt-2 border-t border-slate-50 dark:border-surface-border">
+        <div className="flex flex-col gap-3 pt-3 border-t border-slate-50 dark:border-surface-border">
           <div className="flex items-baseline gap-2">
-            <span className="text-primary text-base font-black tracking-tight">{product.price.toLocaleString('vi-VN')}₫</span>
+            <span className="text-primary text-lg font-black tracking-tight">{product.price.toLocaleString('vi-VN')}₫</span>
             {product.originalPrice && (
-              <span className="text-[10px] text-slate-400 line-through font-medium">{(product.originalPrice).toLocaleString('vi-VN')}₫</span>
+              <span className="text-xs text-slate-400 line-through font-medium">{(product.originalPrice).toLocaleString('vi-VN')}₫</span>
             )}
           </div>
-          
-          <div className="flex items-center justify-between">
+
+          <div className="flex items-center justify-between gap-2">
             <div className="flex text-yellow-500">
               {[...Array(5)].map((_, i) => (
                 <span key={i} className={`material-symbols-outlined !text-[12px] ${i < Math.floor(product.rating) ? 'font-variation-fill' : ''}`}>star</span>
               ))}
             </div>
-            <button 
-              onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}
-              className="size-8 rounded-full bg-primary/10 hover:bg-primary text-primary hover:text-white transition-all flex items-center justify-center active:scale-90"
-            >
-              <span className="material-symbols-outlined !text-[18px]">add_shopping_cart</span>
-            </button>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}
+                className="size-8 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-primary text-slate-600 dark:text-slate-400 hover:text-white transition-all flex items-center justify-center active:scale-90"
+                title="Thêm vào giỏ"
+              >
+                <span className="material-symbols-outlined !text-[18px]">add_shopping_cart</span>
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onBuyNow(product); }}
+                className="h-8 px-3 rounded-xl bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:bg-primary-dark transition-all flex items-center justify-center active:scale-95 shadow-lg shadow-primary/20"
+              >
+                Mua ngay
+              </button>
+            </div>
           </div>
         </div>
       </div>
