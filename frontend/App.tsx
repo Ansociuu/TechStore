@@ -1,24 +1,39 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { Page, Product, CartItem, User, Order, Notification } from './types';
 import { productAPI, authAPI, cartAPI, notificationAPI } from './services/apiService';
 import Navbar from './components/Navbar';
-import Home from './pages/Home';
-import ProductDetail from './pages/ProductDetail';
-import Auth from './pages/Auth';
-import Listing from './pages/Listing';
-import Cart from './pages/Cart';
-import Checkout from './pages/Checkout';
-import Profile from './pages/Profile';
-import OrderDetail from './pages/OrderDetail';
-import AIAssistant from './pages/AIAssistant';
-import AdminDashboard from './pages/AdminDashboard';
-import OrderSuccess from './pages/OrderSuccess';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
+import ScrollToTop from './components/ScrollToTop';
 
+// Lazy load page components
+const Home = lazy(() => import('./pages/Home'));
+const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+const Auth = lazy(() => import('./pages/Auth'));
+const Listing = lazy(() => import('./pages/Listing'));
+const Cart = lazy(() => import('./pages/Cart'));
+const Checkout = lazy(() => import('./pages/Checkout'));
+const Profile = lazy(() => import('./pages/Profile'));
+const OrderDetail = lazy(() => import('./pages/OrderDetail'));
+const AIAssistant = lazy(() => import('./pages/AIAssistant'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const OrderSuccess = lazy(() => import('./pages/OrderSuccess'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+
+// Loading Fallback Component
+const PageLoader = () => (
+  <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+    <div className="relative size-16">
+      <div className="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
+      <div className="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+    </div>
+    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 animate-pulse">Đang tải TechStore...</p>
+  </div>
+);
 
 const App: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState<Page>(Page.HOME);
+  const navigate = useNavigate();
+  const location = useLocation();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [buyNowItem, setBuyNowItem] = useState<CartItem | null>(null);
@@ -58,7 +73,7 @@ const App: React.FC = () => {
 
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('token')) {
-      setCurrentPage(Page.RESET_PASSWORD);
+      navigate('/reset-password');
     }
   }, []);
 
@@ -86,30 +101,27 @@ const App: React.FC = () => {
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
     fetchUserContent();
-    setCurrentPage(Page.HOME);
+    navigate('/');
   };
 
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
-    setCurrentPage(Page.DETAIL);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigate(`/product/${product.id}`);
   };
 
   const handleOrderSelect = (order: Order) => {
     setSelectedOrder(order);
-    setCurrentPage(Page.ORDER_DETAIL);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigate(`/order/${order.id}`);
   };
 
   const handleBuyNow = (product: Product, quantity: number = 1) => {
     setBuyNowItem({ ...product, quantity });
-    setCurrentPage(Page.CHECKOUT);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigate('/checkout');
   };
 
   const handleAddToCart = async (product: Product, quantity: number = 1) => {
     if (!user) {
-      setCurrentPage(Page.AUTH);
+      navigate('/auth');
       return;
     }
 
@@ -157,17 +169,12 @@ const App: React.FC = () => {
     }
   };
 
-  const handleAuthSuccess = (userData: User) => {
-    handleLogin(userData);
-  };
-
   const handleLogout = () => {
     setUser(null);
     setCart([]);
     setNotifications([]);
     authAPI.logout();
-    setCurrentPage(Page.HOME);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigate('/');
   };
 
   const handleUpdateUser = (updatedUser: User) => {
@@ -201,25 +208,58 @@ const App: React.FC = () => {
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     if (query.trim()) {
-      setCurrentPage(Page.LISTING);
+      navigate('/listing');
     }
   };
 
   const handleCategorySelect = (category: string) => {
     setCategoryQuery(category);
-    setCurrentPage(Page.LISTING);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigate('/listing');
   };
 
 
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
+  // Helper to determine current "Page" enum for components that still need it
+  const getCurrentPageEnum = () => {
+    const path = location.pathname;
+    if (path === '/') return Page.HOME;
+    if (path.startsWith('/product/')) return Page.DETAIL;
+    if (path === '/auth') return Page.AUTH;
+    if (path === '/listing') return Page.LISTING;
+    if (path === '/cart') return Page.CART;
+    if (path === '/checkout') return Page.CHECKOUT;
+    if (path === '/profile') return Page.PROFILE;
+    if (path.startsWith('/order/')) return Page.ORDER_DETAIL;
+    if (path === '/ai-assistant') return Page.AI_ASSISTANT;
+    if (path === '/admin') return Page.ADMIN_DASHBOARD;
+    if (path === '/order-success') return Page.ORDER_SUCCESS;
+    if (path === '/forgot-password') return Page.FORGOT_PASSWORD;
+    if (path === '/reset-password') return Page.RESET_PASSWORD;
+    return Page.HOME;
+  };
+
+  const currentPage = getCurrentPageEnum();
+
   return (
     <div className="flex flex-col min-h-screen">
+      <ScrollToTop />
       <Navbar
         user={user}
         cartCount={cartCount}
-        onNavigate={setCurrentPage}
+        onNavigate={(page) => {
+          // Mapping Page enum to paths for backward compatibility with Navbar
+          switch (page) {
+            case Page.HOME: navigate('/'); break;
+            case Page.AUTH: navigate('/auth'); break;
+            case Page.CART: navigate('/cart'); break;
+            case Page.PROFILE: navigate('/profile'); break;
+            case Page.AI_ASSISTANT: navigate('/ai-assistant'); break;
+            case Page.ADMIN_DASHBOARD: navigate('/admin'); break;
+            case Page.LISTING: navigate('/listing'); break;
+            default: navigate('/');
+          }
+        }}
         currentPage={currentPage}
         onLogout={handleLogout}
         notifications={notifications}
@@ -230,126 +270,190 @@ const App: React.FC = () => {
       />
 
       <main className="flex-grow container mx-auto px-4 lg:px-8 max-w-7xl pt-8 pb-12">
-        {currentPage === Page.HOME && (
-          <Home
-            products={products}
-            onProductSelect={handleProductSelect}
-            onAddToCart={handleAddToCart}
-            onNavigate={setCurrentPage}
-          />
-        )}
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/" element={
+              <Home
+                products={products}
+                onProductSelect={handleProductSelect}
+                onAddToCart={handleAddToCart}
+                onBuyNow={handleBuyNow}
+                onNavigate={(page) => {
+                  switch (page) {
+                    case Page.LISTING: navigate('/listing'); break;
+                    case Page.CART: navigate('/cart'); break;
+                    case Page.PROFILE: navigate('/profile'); break;
+                    case Page.AI_ASSISTANT: navigate('/ai-assistant'); break;
+                    case Page.AUTH: navigate('/auth'); break;
+                    default: navigate('/');
+                  }
+                }}
+              />
+            } />
 
-        {currentPage === Page.DETAIL && selectedProduct && (
-          <ProductDetail
-            product={selectedProduct}
-            onAddToCart={handleAddToCart}
-            onBuyNow={handleBuyNow}
-            onNavigate={setCurrentPage}
-            onProductSelect={handleProductSelect}
-          />
-        )}
+            <Route path="/product/:id" element={
+              <ProductDetail
+                product={selectedProduct}
+                onAddToCart={handleAddToCart}
+                onBuyNow={handleBuyNow}
+                onNavigate={(page) => {
+                  switch (page) {
+                    case Page.LISTING: navigate('/listing'); break;
+                    case Page.CART: navigate('/cart'); break;
+                    case Page.PROFILE: navigate('/profile'); break;
+                    case Page.AI_ASSISTANT: navigate('/ai-assistant'); break;
+                    case Page.AUTH: navigate('/auth'); break;
+                    default: navigate('/');
+                  }
+                }}
+                onProductSelect={handleProductSelect}
+              />
+            } />
 
-        {currentPage === Page.AUTH && (
-          <Auth
-            onNavigate={setCurrentPage}
-            onLogin={handleLogin}
-          />
-        )}
+            <Route path="/auth" element={
+              <Auth
+                onNavigate={(page) => {
+                  switch (page) {
+                    case Page.LISTING: navigate('/listing'); break;
+                    case Page.CART: navigate('/cart'); break;
+                    case Page.PROFILE: navigate('/profile'); break;
+                    case Page.AI_ASSISTANT: navigate('/ai-assistant'); break;
+                    case Page.AUTH: navigate('/auth'); break;
+                    default: navigate('/');
+                  }
+                }}
+                onLogin={handleLogin}
+              />
+            } />
 
-        {currentPage === Page.LISTING && (
-          <Listing
-            products={products}
-            onProductSelect={handleProductSelect}
-            onAddToCart={handleAddToCart}
-            onNavigate={setCurrentPage}
-            searchQuery={searchQuery}
-            initialCategory={categoryQuery}
-          />
-        )}
+            <Route path="/listing" element={
+              <Listing
+                products={products}
+                onProductSelect={handleProductSelect}
+                onAddToCart={handleAddToCart}
+                onNavigate={(page) => {
+                  switch (page) {
+                    case Page.LISTING: navigate('/listing'); break;
+                    case Page.CART: navigate('/cart'); break;
+                    case Page.PROFILE: navigate('/profile'); break;
+                    case Page.AI_ASSISTANT: navigate('/ai-assistant'); break;
+                    case Page.AUTH: navigate('/auth'); break;
+                    default: navigate('/');
+                  }
+                }}
+                searchQuery={searchQuery}
+                initialCategory={categoryQuery}
+              />
+            } />
 
-        {currentPage === Page.CART && (
-          <Cart
-            user={user}
-            cart={cart}
-            onUpdateQuantity={handleUpdateCartQuantity}
-            onRemoveItem={handleRemoveFromCart}
-            onClearCart={handleClearCart}
-            onNavigate={setCurrentPage}
-            onProductSelect={handleProductSelect}
-            onAddToCart={handleAddToCart}
-            onCheckoutSelected={(items, voucher) => {
-              setCheckoutItems(items);
-              setCheckoutVoucher(voucher);
-              setBuyNowItem(null);
-              setCurrentPage(Page.CHECKOUT);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          />
-        )}
+            <Route path="/cart" element={
+              <Cart
+                user={user}
+                cart={cart}
+                onUpdateQuantity={handleUpdateCartQuantity}
+                onRemoveItem={handleRemoveFromCart}
+                onClearCart={handleClearCart}
+                onNavigate={(page) => {
+                  switch (page) {
+                    case Page.LISTING: navigate('/listing'); break;
+                    case Page.CART: navigate('/cart'); break;
+                    case Page.PROFILE: navigate('/profile'); break;
+                    case Page.AI_ASSISTANT: navigate('/ai-assistant'); break;
+                    case Page.AUTH: navigate('/auth'); break;
+                    default: navigate('/');
+                  }
+                }}
+                onProductSelect={handleProductSelect}
+                onAddToCart={handleAddToCart}
+                onCheckoutSelected={(items, voucher) => {
+                  setCheckoutItems(items);
+                  setCheckoutVoucher(voucher);
+                  setBuyNowItem(null);
+                  navigate('/checkout');
+                }}
+              />
+            } />
 
-        {currentPage === Page.CHECKOUT && (
-          <Checkout
-            cart={buyNowItem ? [buyNowItem] : (checkoutItems.length > 0 ? checkoutItems : cart)}
-            onNavigate={(page) => {
-              setBuyNowItem(null);
-              setCheckoutItems([]);
-              setCheckoutVoucher(null);
-              setCurrentPage(page);
-            }}
-            initialVoucher={checkoutVoucher}
-            onAddToCart={handleAddToCart}
-            user={user}
-            onClearCart={(force) => {
-              if (buyNowItem) {
-                setBuyNowItem(null);
-              } else if (checkoutItems.length > 0) {
-                setCheckoutItems([]);
-              } else {
-                handleClearCart(force);
-              }
-            }}
-          />
-        )}
+            <Route path="/checkout" element={
+              <Checkout
+                cart={buyNowItem ? [buyNowItem] : (checkoutItems.length > 0 ? checkoutItems : cart)}
+                onNavigate={(page) => {
+                  setBuyNowItem(null);
+                  setCheckoutItems([]);
+                  setCheckoutVoucher(null);
+                  // page here is restricted in Checkout, but we map to HOME/SUCCESS
+                  if (page === Page.ORDER_SUCCESS) navigate('/order-success');
+                  else navigate('/');
+                }}
+                initialVoucher={checkoutVoucher}
+                onAddToCart={handleAddToCart}
+                user={user}
+                onClearCart={(force) => {
+                  if (buyNowItem) {
+                    setBuyNowItem(null);
+                  } else if (checkoutItems.length > 0) {
+                    setCheckoutItems([]);
+                  } else {
+                    handleClearCart(force);
+                  }
+                }}
+              />
+            } />
 
-        {currentPage === Page.ORDER_SUCCESS && (
-          <OrderSuccess onNavigate={setCurrentPage} />
-        )}
+            <Route path="/order-success" element={<OrderSuccess onNavigate={(page) => navigate('/')} />} />
 
-        {currentPage === Page.PROFILE && user && (
-          <Profile
-            user={user}
-            onNavigate={setCurrentPage}
-            onProductSelect={handleProductSelect}
-            onOrderSelect={handleOrderSelect}
-            onUpdateUser={handleUpdateUser}
-          />
-        )}
+            <Route path="/profile" element={
+              user ? (
+                <Profile
+                  user={user}
+                  onNavigate={(page) => {
+                    switch (page) {
+                      case Page.LISTING: navigate('/listing'); break;
+                      case Page.CART: navigate('/cart'); break;
+                      case Page.PROFILE: navigate('/profile'); break;
+                      case Page.AI_ASSISTANT: navigate('/ai-assistant'); break;
+                      case Page.AUTH: navigate('/auth'); break;
+                      default: navigate('/');
+                    }
+                  }}
+                  onProductSelect={handleProductSelect}
+                  onOrderSelect={handleOrderSelect}
+                  onUpdateUser={handleUpdateUser}
+                />
+              ) : <Navigate to="/auth" />
+            } />
 
-        {currentPage === Page.ORDER_DETAIL && selectedOrder && (
-          <OrderDetail
-            order={selectedOrder}
-            user={user}
-            onNavigate={setCurrentPage}
-          />
-        )}
+            <Route path="/order/:id" element={
+              <OrderDetail
+                order={selectedOrder}
+                user={user}
+                onNavigate={(page) => {
+                  switch (page) {
+                    case Page.LISTING: navigate('/listing'); break;
+                    case Page.CART: navigate('/cart'); break;
+                    case Page.PROFILE: navigate('/profile'); break;
+                    case Page.AI_ASSISTANT: navigate('/ai-assistant'); break;
+                    case Page.AUTH: navigate('/auth'); break;
+                    default: navigate('/');
+                  }
+                }}
+              />
+            } />
 
-        {currentPage === Page.AI_ASSISTANT && (
-          <AIAssistant onNavigate={setCurrentPage} />
-        )}
+            <Route path="/ai-assistant" element={<AIAssistant onNavigate={(page) => navigate('/')} />} />
 
-        {currentPage === Page.ADMIN_DASHBOARD && (
-          <AdminDashboard onNavigate={setCurrentPage} user={user} />
-        )}
+            <Route path="/admin" element={
+              user?.role === 'admin' ? (
+                <AdminDashboard onNavigate={(page) => navigate('/')} user={user} />
+              ) : <Navigate to="/" />
+            } />
 
-        {currentPage === Page.FORGOT_PASSWORD && (
-          <ForgotPassword onNavigate={setCurrentPage} />
-        )}
+            <Route path="/forgot-password" element={<ForgotPassword onNavigate={(page) => navigate('/')} />} />
+            <Route path="/reset-password" element={<ResetPassword onNavigate={(page) => navigate('/')} />} />
 
-        {currentPage === Page.RESET_PASSWORD && (
-          <ResetPassword onNavigate={setCurrentPage} />
-        )}
-
-
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </Suspense>
       </main>
 
       <footer className="bg-white dark:bg-[#0b0f17] border-t border-slate-200 dark:border-surface-border pt-20 pb-10 transition-colors duration-300">
@@ -357,7 +461,7 @@ const App: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-16 mb-16 px-4 md:px-0">
             {/* Column 1: Brand & About */}
             <div className="flex flex-col gap-6 items-center md:items-start text-center md:text-left lg:pr-12">
-              <div className="flex items-center gap-3 group cursor-pointer" onClick={() => setCurrentPage(Page.HOME)}>
+              <div className="flex items-center gap-3 group cursor-pointer" onClick={() => navigate('/')}>
                 <div className="size-10 bg-primary/10 rounded-xl text-primary flex items-center justify-center transition-transform group-hover:rotate-12">
                   <span className="material-symbols-outlined !text-[32px] font-variation-fill">hexagon</span>
                 </div>
@@ -398,13 +502,13 @@ const App: React.FC = () => {
             <div className="flex flex-col items-center md:items-start text-center md:text-left">
               <h3 className="font-black mb-8 text-sm uppercase tracking-[0.2em] text-slate-900 dark:text-white font-display border-b-2 border-primary/20 pb-2 w-fit">Công nghệ & Quản lý</h3>
               <ul className="space-y-4 text-sm text-slate-500 dark:text-slate-400 font-medium mb-8">
-                <li><button onClick={() => setCurrentPage(Page.AI_ASSISTANT)} className="hover:text-primary hover:translate-x-1 transition-all flex items-center gap-2"><span className="material-symbols-outlined !text-[18px]">auto_awesome</span>AI Tech Assistant</button></li>
-                <li><button onClick={() => setCurrentPage(Page.HOME)} className="hover:text-primary hover:translate-x-1 transition-all">Gợi ý cá nhân hóa</button></li>
-                <li><button onClick={() => setCurrentPage(Page.LISTING)} className="hover:text-primary hover:translate-x-1 transition-all">So sánh sản phẩm AI</button></li>
+                <li><button onClick={() => navigate('/ai-assistant')} className="hover:text-primary hover:translate-x-1 transition-all flex items-center gap-2"><span className="material-symbols-outlined !text-[18px]">auto_awesome</span>AI Tech Assistant</button></li>
+                <li><button onClick={() => navigate('/')} className="hover:text-primary hover:translate-x-1 transition-all">Gợi ý cá nhân hóa</button></li>
+                <li><button onClick={() => navigate('/listing')} className="hover:text-primary hover:translate-x-1 transition-all">So sánh sản phẩm AI</button></li>
               </ul>
               {user?.role === 'admin' && (
                 <button
-                  onClick={() => setCurrentPage(Page.ADMIN_DASHBOARD)}
+                  onClick={() => navigate('/admin')}
                   className="px-6 py-2.5 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-primary hover:text-white transition-all shadow-sm"
                 >
                   Truy cập Admin Panel

@@ -1,19 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Order, Page, User } from '../types';
 import { orderAPI } from '../services/apiService';
 
 interface OrderDetailProps {
-  order: Order;
+  order?: Order | null;
   user: User | null;
   onNavigate: (page: Page) => void;
 }
 
-export default function OrderDetail({ order, user, onNavigate }: OrderDetailProps) {
+export default function OrderDetail({ order: initialOrder, user, onNavigate }: OrderDetailProps) {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [currentOrder, setCurrentOrder] = useState<Order | null>(initialOrder || null);
+  const [loading, setLoading] = useState(!initialOrder);
   const [isPrinting, setIsPrinting] = useState(false);
-  const [currentOrder, setCurrentOrder] = useState<Order>(order);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   const isAdmin = user?.role === 'admin';
+
+  useEffect(() => {
+    const fetchOrder = async () => {
+      if (!id) return;
+      if (initialOrder && initialOrder.id === id) {
+        setCurrentOrder(initialOrder);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const data = await orderAPI.getById(Number(id));
+        setCurrentOrder(data);
+      } catch (error) {
+        console.error('Failed to fetch order:', error);
+        navigate('/profile');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrder();
+  }, [id, initialOrder, navigate]);
 
   const steps = [
     { label: 'Đặt hàng', icon: 'shopping_cart' },
@@ -31,10 +59,11 @@ export default function OrderDetail({ order, user, onNavigate }: OrderDetailProp
   };
 
   const handleUpdateStatus = async (newStatus: string) => {
+    if (!currentOrder) return;
     try {
       setIsUpdatingStatus(true);
       const numericId = typeof currentOrder.id === 'string' ? parseInt(currentOrder.id.replace(/\D/g, '')) : currentOrder.id;
-      const updatedOrder = await orderAPI.updateStatus(numericId, newStatus);
+      await orderAPI.updateStatus(numericId, newStatus);
       setCurrentOrder({ ...currentOrder, status: newStatus });
       alert('Cập nhật trạng thái đơn hàng thành công!');
     } catch (error) {
@@ -57,22 +86,32 @@ export default function OrderDetail({ order, user, onNavigate }: OrderDetailProp
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!currentOrder) return null;
+
   const trackingStep = getTrackingStep(currentOrder.status);
 
   return (
     <div className="flex flex-col gap-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
-        <button
-          onClick={() => onNavigate(Page.PROFILE)}
+        <Link
+          to="/profile"
           className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-primary transition-all group w-fit"
         >
           <span className="material-symbols-outlined !text-[18px] group-hover:-translate-x-1 transition-transform">arrow_back</span>
           Quay lại lịch sử
-        </button>
+        </Link>
         <nav className="hidden md:flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
-          <button onClick={() => onNavigate(Page.PROFILE)} className="hover:text-primary transition-colors">Hồ sơ</button>
+          <Link to="/profile" className="hover:text-primary transition-colors">Hồ sơ</Link>
           <span className="material-symbols-outlined !text-[14px]">chevron_right</span>
-          <button onClick={() => onNavigate(Page.PROFILE)} className="hover:text-primary transition-colors">Lịch sử</button>
+          <Link to="/profile" className="hover:text-primary transition-colors">Lịch sử</Link>
           <span className="material-symbols-outlined !text-[14px]">chevron_right</span>
           <span className="text-primary">{currentOrder.id}</span>
         </nav>
@@ -150,11 +189,11 @@ export default function OrderDetail({ order, user, onNavigate }: OrderDetailProp
             <div className="divide-y divide-slate-100 dark:divide-surface-border">
               {currentOrder.items.map((item, idx) => (
                 <div key={idx} className="p-6 flex items-center gap-6 group hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                  <div className="size-20 rounded-2xl bg-white p-2 border border-slate-100 dark:border-surface-border flex-shrink-0 cursor-pointer" onClick={() => alert('Chuyển đến trang sản phẩm...')}>
+                  <div className="size-20 rounded-2xl bg-white p-2 border border-slate-100 dark:border-surface-border flex-shrink-0 cursor-pointer" onClick={() => navigate(`/product/${item.id}`)}>
                     <img src={item.image} alt={item.name} className="size-full object-contain" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-black text-slate-900 dark:text-white truncate cursor-pointer" onClick={() => alert('Chuyển đến trang sản phẩm...')}>{item.name}</h4>
+                    <h4 className="text-sm font-black text-slate-900 dark:text-white truncate cursor-pointer" onClick={() => navigate(`/product/${item.id}`)}>{item.name}</h4>
                     <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">{item.category}</p>
                   </div>
                   <div className="text-right">
@@ -167,7 +206,7 @@ export default function OrderDetail({ order, user, onNavigate }: OrderDetailProp
           </div>
 
           <div
-            onClick={() => onNavigate(Page.AI_ASSISTANT)}
+            onClick={() => navigate('/ai-assistant')}
             className="ai-glass rounded-[2rem] p-8 relative group overflow-hidden cursor-pointer hover:border-primary/40 transition-all"
           >
             <div className="relative z-10 flex items-center gap-6">

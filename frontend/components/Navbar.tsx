@@ -1,5 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Page, User, Notification } from '../types';
 import NotificationPopover from './NotificationPopover';
 
@@ -33,6 +34,7 @@ const Navbar: React.FC<NavbarProps> = ({
   const [searchValue, setSearchValue] = useState('');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
@@ -43,12 +45,6 @@ const Navbar: React.FC<NavbarProps> = ({
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-
-    // Default to Light Mode (User request)
-    // if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    //   setIsDarkMode(true);
-    //   document.documentElement.classList.add('dark');
-    // }
 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
@@ -91,16 +87,16 @@ const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           {/* Logo */}
-          <a
-            href="#"
-            onClick={(e) => { e.preventDefault(); onNavigate(Page.HOME); setIsMenuOpen(false); }}
+          <Link
+            to="/"
+            onClick={() => setIsMenuOpen(false)}
             className="flex items-center gap-2 group"
           >
             <div className="size-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg shadow-primary/25 transition-transform group-hover:scale-105">
               <span className="material-symbols-outlined !text-[24px] font-variation-fill">hexagon</span>
             </div>
             <h1 className="text-xl font-bold font-display tracking-tight text-slate-900 dark:text-white hidden md:block">TechStore</h1>
-          </a>
+          </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-6">
@@ -141,13 +137,13 @@ const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           {/* AI Button */}
-          <button
-            onClick={() => onNavigate(Page.AI_ASSISTANT)}
-            className={`hidden md:flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${currentPage === Page.AI_ASSISTANT ? 'bg-primary text-white shadow-lg' : 'hover:bg-primary/10 text-primary'}`}
+          <Link
+            to="/ai-assistant"
+            className={`hidden md:flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${location.pathname === '/ai-assistant' ? 'bg-primary text-white shadow-lg' : 'hover:bg-primary/10 text-primary'}`}
           >
             <span className="material-symbols-outlined !text-[20px] font-variation-fill animate-sparkle">auto_awesome</span>
             <span className="text-[10px] font-black uppercase tracking-widest hidden xl:block">AI Chat</span>
-          </button>
+          </Link>
 
           <div className="h-6 w-px bg-slate-200 dark:bg-surface-border mx-1 hidden sm:block"></div>
 
@@ -180,9 +176,9 @@ const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             {/* Cart */}
-            <button
-              onClick={() => onNavigate(Page.CART)}
-              className={`relative p-2 transition-all rounded-full ${currentPage === Page.CART ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-300 hover:text-primary hover:bg-slate-100 dark:hover:bg-white/5'}`}
+            <Link
+              to="/cart"
+              className={`relative p-2 transition-all rounded-full ${location.pathname === '/cart' ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-300 hover:text-primary hover:bg-slate-100 dark:hover:bg-white/5'}`}
             >
               <span className="material-symbols-outlined">shopping_cart</span>
               {cartCount > 0 && (
@@ -190,19 +186,19 @@ const Navbar: React.FC<NavbarProps> = ({
                   {cartCount}
                 </span>
               )}
-            </button>
+            </Link>
 
             {/* User Profile */}
             {user ? (
               <div className="flex items-center gap-2 pl-2">
-                <button
-                  onClick={() => onNavigate(Page.PROFILE)}
+                <Link
+                  to="/profile"
                   className="flex items-center gap-2 rounded-full p-1 hover:bg-slate-100 dark:hover:bg-white/5 transition-all group"
                 >
                   <div className="size-8 rounded-full overflow-hidden ring-2 ring-transparent group-hover:ring-primary transition-all">
                     <img src={user.avatar} alt={user.name} className="size-full object-cover" />
                   </div>
-                </button>
+                </Link>
                 <button
                   onClick={onLogout}
                   className="p-2 text-slate-400 hover:text-red-500 transition-colors hidden sm:block"
@@ -212,12 +208,12 @@ const Navbar: React.FC<NavbarProps> = ({
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => onNavigate(Page.AUTH)}
+              <Link
+                to="/auth"
                 className="ml-2 px-6 py-2 text-sm font-black uppercase tracking-widest text-white bg-primary hover:bg-primary-dark rounded-xl transition-all shadow-lg shadow-primary/20 active:scale-95"
               >
                 Login
-              </button>
+              </Link>
             )}
           </div>
         </div>
@@ -238,22 +234,34 @@ const Navbar: React.FC<NavbarProps> = ({
           </form>
           <nav className="flex flex-col gap-2">
             {[
-              { label: 'Trang chủ', page: Page.HOME, icon: 'home', action: () => onNavigate(Page.HOME) },
+              { label: 'Trang chủ', to: '/', icon: 'home' },
               { label: 'Laptop', icon: 'laptop', action: () => handleCategoryClick('Laptop') },
               { label: 'Smartphone', icon: 'smartphone', action: () => handleCategoryClick('Smartphone') },
               { label: 'Tablet', icon: 'tablet', action: () => handleCategoryClick('Tablet') },
               { label: 'Phụ kiện', icon: 'headphones', action: () => handleCategoryClick('Phụ kiện') },
-              { label: 'Trợ lý AI', page: Page.AI_ASSISTANT, icon: 'smart_toy', action: () => onNavigate(Page.AI_ASSISTANT) },
-              { label: 'Giỏ hàng', page: Page.CART, icon: 'shopping_cart', action: () => onNavigate(Page.CART) },
+              { label: 'Trợ lý AI', to: '/ai-assistant', icon: 'smart_toy' },
+              { label: 'Giỏ hàng', to: '/cart', icon: 'shopping_cart' },
             ].map((item, idx) => (
-              <button
-                key={idx}
-                onClick={() => { item.action(); setIsMenuOpen(false); }}
-                className={`flex items-center gap-4 p-4 rounded-xl text-sm font-bold transition-all ${currentPage === (item as any).page ? 'bg-primary text-white shadow-lg' : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-600 dark:text-slate-300'}`}
-              >
-                <span className="material-symbols-outlined">{item.icon}</span>
-                {item.label}
-              </button>
+              item.to ? (
+                <Link
+                  key={idx}
+                  to={item.to}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`flex items-center gap-4 p-4 rounded-xl text-sm font-bold transition-all ${location.pathname === item.to ? 'bg-primary text-white shadow-lg' : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-600 dark:text-slate-300'}`}
+                >
+                  <span className="material-symbols-outlined">{item.icon}</span>
+                  {item.label}
+                </Link>
+              ) : (
+                <button
+                  key={idx}
+                  onClick={() => { (item as any).action(); setIsMenuOpen(false); }}
+                  className={`flex items-center gap-4 p-4 rounded-xl text-sm font-bold transition-all hover:bg-slate-100 dark:hover:bg-white/5 text-slate-600 dark:text-slate-300`}
+                >
+                  <span className="material-symbols-outlined">{item.icon}</span>
+                  {item.label}
+                </button>
+              )
             ))}
           </nav>
         </div>

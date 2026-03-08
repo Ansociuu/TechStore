@@ -1,47 +1,80 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Product, Page, Review, User } from '../types';
 import { analyzeProductSpec } from '../services/geminiService';
 import { recommendationAPI, productAPI, authAPI } from '../services/apiService';
 import ProductCard from '../components/ProductCard';
 
 interface ProductDetailProps {
-  product: Product;
+  product?: Product | null;
   onAddToCart: (product: Product, quantity?: number) => void;
   onBuyNow: (product: Product, quantity?: number) => void;
   onNavigate: (page: Page) => void;
   onProductSelect?: (product: Product) => void;
 }
 
-const ProductDetail: React.FC<ProductDetailProps> = ({ product, onAddToCart, onBuyNow, onNavigate, onProductSelect }) => {
+const ProductDetail: React.FC<ProductDetailProps> = ({ product: initialProduct, onAddToCart, onBuyNow, onNavigate, onProductSelect }) => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [product, setProduct] = useState<Product | null>(initialProduct || null);
+  const [loading, setLoading] = useState(!initialProduct);
   const [quantity, setQuantity] = useState(1);
   const [aiAnalysis, setAiAnalysis] = useState<string>('');
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
-  const [reviews, setReviews] = useState<Review[]>(product.reviews || []);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const currentUser: User | null = authAPI.getCurrentUser();
 
+  // Fetch product if not provided or ID changed
   useEffect(() => {
-    const fetchAnalysis = async () => {
-      setIsLoadingAnalysis(true);
-      const analysis = await analyzeProductSpec(product.name);
-      setAiAnalysis(analysis);
-      setIsLoadingAnalysis(false);
+    const fetchProduct = async () => {
+      if (!id) return;
+      if (initialProduct && initialProduct.id === id) {
+        setProduct(initialProduct);
+        setReviews(initialProduct.reviews || []);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const data = await productAPI.getById(id);
+        const transformedProduct = {
+          ...data,
+          id: String(data.id),
+          specs: data.specs || {}
+        };
+        setProduct(transformedProduct);
+        setReviews(transformedProduct.reviews || []);
+      } catch (error) {
+        console.error('Error fetching product:', error);
+        navigate('/');
+      } finally {
+        setLoading(false);
+      }
     };
-    fetchAnalysis();
-  }, [product.name]);
+
+    fetchProduct();
+  }, [id, initialProduct, navigate]);
 
   useEffect(() => {
-    if (product.reviews) {
-      setReviews(product.reviews);
+    if (product?.name) {
+      const fetchAnalysis = async () => {
+        setIsLoadingAnalysis(true);
+        const analysis = await analyzeProductSpec(product.name);
+        setAiAnalysis(analysis);
+        setIsLoadingAnalysis(false);
+      };
+      fetchAnalysis();
     }
-  }, [product.reviews]);
+  }, [product?.name]);
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser) return;
+    if (!currentUser || !product) return;
 
     try {
       setIsSubmittingReview(true);
@@ -63,6 +96,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onAddToCart, onB
 
   useEffect(() => {
     const fetchRelated = async () => {
+      if (!product?.id) return;
       try {
         setRelatedLoading(true);
         const data = await recommendationAPI.forItem(product.id, 4);
@@ -82,18 +116,28 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onAddToCart, onB
       }
     };
     fetchRelated();
-  }, [product.id]);
+  }, [product?.id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!product) return null;
 
   return (
     <div className="flex flex-col gap-6 pb-20 max-w-6xl mx-auto animate-in fade-in duration-500">
       {/* Navigation Back */}
-      <button
-        onClick={() => onNavigate(Page.LISTING)}
+      <Link
+        to="/listing"
         className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-primary transition-all group w-fit"
       >
         <span className="material-symbols-outlined !text-[18px] group-hover:-translate-x-1 transition-transform">arrow_back</span>
         Quay lại danh sách
-      </button>
+      </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 xl:gap-20 items-start">
         {/* Gallery */}
@@ -292,7 +336,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onAddToCart, onB
               <ProductCard
                 key={p.id}
                 product={p}
-                onSelect={onProductSelect || ((prod) => onNavigate(Page.LISTING))}
+                onSelect={onProductSelect || ((prod) => navigate(`/product/${prod.id}`))}
                 onAddToCart={onAddToCart}
               />
             ))}
@@ -322,12 +366,12 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onAddToCart, onB
           </div>
 
           {!currentUser ? (
-            <button
-              onClick={() => onNavigate(Page.AUTH)}
+            <Link
+              to="/auth"
               className="px-6 py-3 bg-slate-100 dark:bg-white/5 rounded-2xl text-xs font-bold hover:bg-slate-200 transition-all"
             >
               Đăng nhập để đánh giá
-            </button>
+            </Link>
           ) : null}
         </div>
 

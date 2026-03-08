@@ -1,6 +1,8 @@
 import express from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
+import { validate } from '../middleware/validation.middleware';
+import { cartItemSchema } from '../middleware/schemas';
 
 const router = express.Router();
 
@@ -42,15 +44,11 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
 });
 
 // Thêm sản phẩm vào giỏ hàng
-router.post('/add', authenticate, async (req: AuthRequest, res) => {
+router.post('/items', authenticate, validate(cartItemSchema), async (req: AuthRequest, res) => {
     try {
         const userId = req.userId!;
         const { productId, quantity = 1 } = req.body;
-        console.log(`[Cart/Add] User: ${userId}, Product: ${productId}, Qty: ${quantity}`);
-
-        if (!productId) {
-            return res.status(400).json({ error: 'productId là bắt buộc' });
-        }
+        console.log(`[Cart/Items] User: ${userId}, Product: ${productId}, Qty: ${quantity}`);
 
         // Kiểm tra sản phẩm có tồn tại không
         const product = await prisma.product.findUnique({ where: { id: Number(productId) } });
@@ -65,10 +63,8 @@ router.post('/add', authenticate, async (req: AuthRequest, res) => {
 
         // Lấy hoặc tạo giỏ hàng
         let cart = await prisma.cart.findUnique({ where: { userId } });
-        console.log(`[Cart/Add] Found cart:`, cart);
         if (!cart) {
             cart = await prisma.cart.create({ data: { userId } });
-            console.log(`[Cart/Add] Created cart:`, cart);
         }
 
         // Kiểm tra sản phẩm đã có trong giỏ chưa
@@ -80,7 +76,6 @@ router.post('/add', authenticate, async (req: AuthRequest, res) => {
                 },
             },
         });
-        console.log(`[Cart/Add] Existing item:`, existingItem);
 
         if (existingItem) {
             // Cập nhật số lượng

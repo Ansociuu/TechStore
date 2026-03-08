@@ -8,10 +8,11 @@ interface HomeProps {
   products: Product[];
   onProductSelect: (product: Product) => void;
   onAddToCart: (product: Product) => void;
+  onBuyNow: (product: Product) => void;
   onNavigate: (page: Page) => void;
 }
 
-const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onNavigate }) => {
+const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onBuyNow, onNavigate }) => {
   const trending = products.slice(0, 4);
   const heroProducts = products.slice(0, 5); // Get top 3 products for Hero Carousel
   const [cfRecommendations, setCfRecommendations] = useState<Product[]>([]);
@@ -136,7 +137,7 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onN
 
               <div className="flex flex-wrap items-center gap-3 pt-2 md:pt-4">
                 <button
-                  onClick={() => onProductSelect(p)}
+                  onClick={() => onBuyNow(p)}
                   className="group/btn h-11 md:h-14 px-6 md:px-10 rounded-2xl bg-primary hover:bg-primary-dark text-white font-bold text-xs sm:text-sm tracking-wide transition-all shadow-lg shadow-primary/40 flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-95 border border-primary-light/30 flex-shrink-0"
                 >
                   Mua Ngay

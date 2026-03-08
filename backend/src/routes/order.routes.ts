@@ -2,133 +2,26 @@ import express from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest, requireAdmin } from '../middleware/auth.middleware';
 import { createMomoPaymentUrl, verifyMomoSignature } from '../services/momoService';
+import { validate } from '../middleware/validation.middleware';
+import { orderSchema } from '../middleware/schemas';
+
+import { createOrder } from '../services/order.service';
 
 const router = express.Router();
 
 // Tạo đơn hàng mới từ cart items trong request
-router.post('/', authenticate, async (req: AuthRequest, res) => {
+router.post('/', authenticate, validate(orderSchema), async (req: AuthRequest, res) => {
     try {
         const userId = req.userId!;
-        const { shippingAddress, paymentMethod, items, voucherId, discountAmount } = req.body;
-        console.log('[Order] Request Body:', JSON.stringify(req.body, null, 2));
-
-        if (!items || !Array.isArray(items) || items.length === 0) {
-            console.warn('[Order] Empty items array');
-            return res.status(400).json({ error: 'Giỏ hàng trống' });
-        }
-
-        const result = await prisma.$transaction(async (tx) => {
-            // 1. Kiểm tra tồn kho cho tất cả items
-            for (const item of items) {
-                const productId = Number(item.productId);
-                const product = await tx.product.findUnique({ where: { id: productId } });
-                if (!product) {
-                    throw new Error(`Không tìm thấy sản phẩm ID ${productId}`);
-                }
-                if (product.stock < item.quantity) {
-                    throw new Error(`Sản phẩm "${product.name}" không đủ hàng trong kho`);
-                }
-            }
-
-            // 2. Tạo đơn hàng
-            const order = await tx.order.create({
-                data: {
-                    userId,
-                    total: items.reduce((sum: number, item: any) => {
-                        const lineTotal = (Number(item.price) || 0) * (Number(item.quantity) || 0);
-                        console.log(`[Order] Item Product ${item.productId}: Price: ${item.price}, Qty: ${item.quantity}, Line total: ${lineTotal}`);
-                        return sum + lineTotal;
-                    }, 0) - (Number(discountAmount) || 0),
-                    status: 'pending',
-                    shippingAddress,
-                    paymentMethod,
-                    voucherId: voucherId ? Number(voucherId) : null,
-                    discountAmount: Number(discountAmount) || 0,
-                    items: {
-                        create: items.map((item: any) => ({
-                            productId: Number(item.productId),
-                            quantity: item.quantity,
-                            price: item.price,
-                        })),
-                    },
-                },
-                include: {
-                    items: {
-                        include: {
-                            product: true,
-                        },
-                    },
-                },
-            });
-
-            // 3. Giảm tồn kho
-            for (const item of items) {
-                await tx.product.update({
-                    where: { id: Number(item.productId) },
-                    data: { stock: { decrement: item.quantity } },
-                });
-            }
-
-            // 4. Xóa toàn bộ giỏ hàng
-            const cart = await tx.cart.findUnique({ where: { userId } });
-            console.log(`[Order] Found cart for clearing:`, cart?.id);
-            if (cart) {
-                const deleted = await tx.cartItem.deleteMany({
-                    where: { cartId: cart.id }
-                });
-                console.log(`[Order] Deleted ${deleted.count} items from cart ${cart.id}`);
-            }
-
-            // 5. Cập nhật lượt sử dụng voucher
-            if (voucherId) {
-                await tx.voucher.update({
-                    where: { id: Number(voucherId) },
-                    data: {
-                        usageCount: { increment: 1 }
-                    }
-                });
-                console.log(`[Order] Voucher ${voucherId} usage count incremented`);
-            }
-
-            // 6. Thông báo cho Admin
-            const admins = await tx.user.findMany({ where: { role: 'admin' } });
-            await tx.notification.createMany({
-                data: admins.map(admin => ({
-                    userId: admin.id,
-                    title: 'Đơn hàng mới',
-                    message: `Có đơn hàng mới #${order.id} từ khách hàng ${req.userId}`,
-                    type: 'order'
-                }))
-            });
-
-            return order;
-        });
-
-        console.log('[Order] Created successfully:', result.id);
-
-        res.status(201).json(result);
+        const order = await createOrder(userId, req.body);
+        console.log('[Order] Created successfully:', order.id);
+        res.status(201).json(order);
     } catch (error: any) {
         console.error('Lỗi khi tạo đơn hàng:', error);
         res.status(400).json({ error: error.message || 'Lỗi khi tạo đơn hàng' });
     }
 });
 
-// Lấy tất cả đơn hàng (Admin)
-router.get('/admin/all', authenticate, async (req: AuthRequest, res) => {
-    try {
-        // TODO: Check if user is admin req.user?.role === 'admin'
-        const orders = await prisma.order.findMany({
-            include: {
-                items: { include: { product: true } },
-                user: { select: { id: true, name: true, email: true } }
-            },
-            orderBy: { createdAt: 'desc' }
-        });
-        res.json(orders);
-    } catch (error) {
-        res.status(500).json({ error: 'Lỗi khi lấy danh sách đơn hàng' });
-    }
-});
 
 // Lấy danh sách đơn hàng của user hiện tại
 router.get('/', authenticate, async (req: AuthRequest, res) => {

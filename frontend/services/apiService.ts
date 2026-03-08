@@ -100,7 +100,7 @@ export const cartAPI = {
         return response.data;
     },
     addItem: async (productId: number, quantity: number = 1) => {
-        const response = await apiClient.post('/cart/add', { productId, quantity });
+        const response = await apiClient.post('/cart/items', { productId, quantity });
         return response.data;
     },
     updateItem: async (itemId: number, quantity: number) => {

@@ -4,12 +4,14 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { sendResetPasswordEmail } from '../services/emailService';
+import { validate } from '../middleware/validation.middleware';
+import { registerSchema, loginSchema } from '../middleware/schemas';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 
 // Register
-router.post('/register', async (req, res) => {
+router.post('/register', validate(registerSchema), async (req, res) => {
     const { email, password, name } = req.body;
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -27,7 +29,7 @@ router.post('/register', async (req, res) => {
 });
 
 // Login
-router.post('/login', async (req, res) => {
+router.post('/login', validate(loginSchema), async (req, res) => {
     const { email, password } = req.body;
     try {
         const user = await prisma.user.findUnique({ where: { email } });

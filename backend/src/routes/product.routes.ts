@@ -1,78 +1,31 @@
 import { Router } from 'express';
-import { prisma } from '../index';
+import { prisma } from '../lib/prisma';
 import { authenticate, requireAdmin } from '../middleware/auth.middleware';
+import { getProducts, getProductById } from '../services/product.service';
 
 const router = Router();
 
 // Lấy tất cả sản phẩm
 router.get('/', async (req, res) => {
     try {
-        const { page = 1, limit = 12, category, search, minPrice, maxPrice, sort } = req.query;
-
-        const skip = (Number(page) - 1) * Number(limit);
-        const take = Number(limit);
-
-        const where: any = {};
-        if (category && category !== 'all') where.category = String(category);
-        if (search) where.name = { contains: String(search) };
-
-        if (minPrice || maxPrice) {
-            where.price = {};
-            if (minPrice) where.price.gte = Number(minPrice);
-            if (maxPrice) where.price.lte = Number(maxPrice);
-        }
-
-        let orderBy: any = { createdAt: 'desc' };
-        if (sort === 'price_asc') orderBy = { price: 'asc' };
-        if (sort === 'price_desc') orderBy = { price: 'desc' };
-        if (sort === 'name_asc') orderBy = { name: 'asc' };
-
-        const [products, total] = await Promise.all([
-            prisma.product.findMany({
-                where,
-                skip,
-                take,
-                orderBy,
-            }),
-            prisma.product.count({ where }),
-        ]);
-
-        res.json({
-            products,
-            pagination: {
-                total,
-                page: Number(page),
-                limit: Number(limit),
-                totalPages: Math.ceil(total / Number(limit)),
-            },
-        });
-    } catch (error) {
+        const result = await getProducts(req.query);
+        res.json(result);
+    } catch (error: any) {
         console.error('Fetch products error:', error);
-        res.status(500).json({ error: 'Lỗi khi lấy danh sách sản phẩm' });
+        res.status(500).json({ error: 'Lỗi khi lấy danh sách sản phẩm', details: error.message });
     }
 });
 
 // Lấy sản phẩm theo ID
 router.get('/:id', async (req, res) => {
-    const { id } = req.params;
     try {
-        const product = await prisma.product.findUnique({
-            where: { id: Number(id) },
-            include: {
-                reviews: {
-                    include: {
-                        user: {
-                            select: { id: true, name: true, avatar: true }
-                        }
-                    },
-                    orderBy: { createdAt: 'desc' }
-                }
-            }
-        });
+        const id = Number(req.params.id);
+        const product = await getProductById(id);
         if (!product) return res.status(404).json({ error: 'Không tìm thấy sản phẩm' });
         res.json(product);
-    } catch (error) {
-        res.status(500).json({ error: 'Lỗi server' });
+    } catch (error: any) {
+        console.error('Get product by ID error:', error);
+        res.status(500).json({ error: 'Lỗi server', details: error.message });
     }
 });
 
