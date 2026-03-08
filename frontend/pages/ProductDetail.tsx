@@ -338,6 +338,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product: initialProduct, 
                 product={p}
                 onSelect={onProductSelect || ((prod) => navigate(`/product/${prod.id}`))}
                 onAddToCart={onAddToCart}
+                onBuyNow={onBuyNow}
               />
             ))}
           </div>

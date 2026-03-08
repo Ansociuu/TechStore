@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Product, Page } from '../types';
 import ProductCard from '../components/ProductCard';
 import { recommendationAPI } from '../services/apiService';
@@ -13,12 +12,25 @@ interface HomeProps {
 }
 
 const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onBuyNow, onNavigate }) => {
-  const trending = products.slice(0, 4);
-  const heroProducts = products.slice(0, 5); // Get top 3 products for Hero Carousel
+  const trending = products.slice(0, 10);
+  const heroProducts = products.slice(0, 5);
+  const bestSellers = products.slice(4, 12);
+  const newArrivals = products.slice(0, 8);
+
   const [cfRecommendations, setCfRecommendations] = useState<Product[]>([]);
   const [cfLoading, setCfLoading] = useState(false);
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
   const [currentGamingIndex, setCurrentGamingIndex] = useState(0);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, clientWidth } = scrollContainerRef.current;
+      const scrollTo = direction === 'left' ? scrollLeft - clientWidth : scrollLeft + clientWidth;
+      scrollContainerRef.current.scrollTo({ left: scrollTo, behavior: 'smooth' });
+    }
+  };
 
   const gamingPromos = [
     {
@@ -42,7 +54,6 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
   ];
 
   useEffect(() => {
-    // Auto slide timers
     const heroTimer = setInterval(() => {
       setCurrentHeroIndex(prev => (prev + 1) % Math.max(1, heroProducts.length));
     }, 5000);
@@ -57,7 +68,7 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
     const fetchCF = async () => {
       try {
         setCfLoading(true);
-        const data = await recommendationAPI.hybrid(4);
+        const data = await recommendationAPI.hybrid(8);
         if (data.recommendations?.length > 0) {
           setCfRecommendations(data.recommendations.map((p: any) => ({
             ...p,
@@ -66,7 +77,6 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
           })));
         }
       } catch {
-        // User not logged in or no data - use trending
       } finally {
         setCfLoading(false);
       }
@@ -76,7 +86,6 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
 
   const aiPickProducts = cfRecommendations.length > 0 ? cfRecommendations : trending;
 
-  // Nếu không có sản phẩm nào, hiển thị placeholder
   if (!products || products.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-6">
@@ -92,18 +101,14 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
   }
 
   return (
-    <div className="flex flex-col gap-12 pb-20">
+    <div className="flex flex-col gap-16 pb-20">
       {/* Hero Section Carousel */}
       <section className="relative w-full rounded-[2rem] overflow-hidden shadow-2xl bg-[#0b0f17] min-h-[500px] md:h-[550px] group border border-white/5">
         <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent z-10 pointer-events-none"></div>
 
         {heroProducts.map((p, index) => (
           <div key={p.id} className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${index === currentHeroIndex ? 'opacity-100 z-20' : 'opacity-0 z-0 pointer-events-none'}`}>
-
-            {/* Background Base (Dùng màu nền đậm để phần chữ luôn rõ ràng) */}
             <div className="absolute inset-0 bg-[#0b0f17] z-0"></div>
-
-            {/* Lớp ảnh: Tràn viền bên Phải, Trên và Dưới (Desktop) | Trên, Trái, Phải (Mobile) */}
             <div className="absolute top-0 right-0 w-full md:w-[60%] h-[48%] md:h-full overflow-hidden pointer-events-none z-10">
               {p.image && (
                 <img
@@ -112,11 +117,9 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
                   className={`w-full h-full object-cover object-center md:object-right transform transition-all duration-[6s] ease-out ${index === currentHeroIndex ? 'scale-105 opacity-100' : 'scale-115 opacity-0'} [mask-image:linear-gradient(to_bottom,black_80%,transparent_100%)] md:[mask-image:linear-gradient(to_right,transparent_0%,black_35%,black_100%)]`}
                 />
               )}
-              {/* Subtle overlay for the faded edge */}
               <div className="absolute inset-0 bg-gradient-to-r from-[#0b0f17] via-transparent to-transparent hidden md:block z-20 w-[40%]"></div>
             </div>
 
-            {/* Content Side - Positioned for balance over the full-bleed backdrop */}
             <div className="relative z-30 flex flex-col justify-end md:justify-center p-6 sm:p-10 md:p-16 lg:p-20 gap-4 md:gap-6 w-full md:w-[60%] lg:w-1/2 h-full pb-16 md:pb-0">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/20 border border-primary/30 w-fit backdrop-blur-md">
                 <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
@@ -150,7 +153,6 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
                   Chi tiết
                 </button>
 
-                {/* Carousel Indicators */}
                 <div className="flex gap-1.5 items-center pl-2 md:pl-4">
                   {heroProducts.map((_, i) => (
                     <button
@@ -163,8 +165,6 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
                 </div>
               </div>
             </div>
-
-
           </div>
         ))}
       </section>
@@ -178,26 +178,21 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
           { icon: 'support_agent', title: '24/7 Premium Support', desc: 'Đội ngũ chuyên gia tư vấn tận tâm 24/7', color: 'text-rose-500', bg: 'bg-rose-500/10' },
         ].map((f, i) => (
           <div key={i} className="group p-8 rounded-[2.5rem] bg-white dark:bg-surface-dark border border-slate-100 dark:border-surface-border flex flex-col items-start gap-6 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 cursor-default overflow-hidden relative">
-            {/* Background Accent */}
             <div className={`absolute -right-4 -top-4 size-32 rounded-full ${f.bg} opacity-20 blur-2xl group-hover:scale-150 transition-transform duration-700`}></div>
-
             <div className={`size-16 rounded-2xl ${f.bg} ${f.color} flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 relative z-10 shadow-lg shadow-black/5`}>
               <span className="material-symbols-outlined !text-[36px] font-variation-fill">{f.icon}</span>
             </div>
-
             <div className="relative z-10 space-y-2">
               <h3 className="font-black text-sm uppercase tracking-[0.15em] text-slate-900 dark:text-white font-display">{f.title}</h3>
               <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{f.desc}</p>
             </div>
-
-            {/* Subtle indicator */}
             <div className="w-12 h-1 bg-slate-100 dark:bg-white/10 rounded-full mt-auto relative z-10 group-hover:w-20 group-hover:bg-primary transition-all duration-500"></div>
           </div>
         ))}
       </section>
 
-      {/* AI Recommendation Showcase */}
-      <section className="flex flex-col gap-8">
+      {/* AI Recommendation Showcase - Now a Slider */}
+      <section className="flex flex-col gap-8 relative group/slider">
         <div className="flex items-end justify-between px-2">
           <div className="flex items-center gap-5">
             <div className="size-14 rounded-2xl bg-gradient-to-br from-primary to-indigo-600 text-white shadow-2xl shadow-primary/30 flex items-center justify-center">
@@ -208,15 +203,30 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
               <p className="text-sm text-slate-500 dark:text-slate-400 font-light mt-2 italic">Được AI cá nhân hóa theo sở thích của bạn</p>
             </div>
           </div>
-          <button
-            onClick={() => onNavigate(Page.LISTING)}
-            className="px-8 py-3 rounded-xl border border-slate-200 dark:border-surface-border text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all hidden sm:block font-display"
-          >
-            Xem tất cả
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => scroll('left')}
+              className="size-10 rounded-xl border border-slate-200 dark:border-surface-border flex items-center justify-center hover:bg-primary hover:text-white hover:border-primary transition-all active:scale-90"
+            >
+              <span className="material-symbols-outlined">chevron_left</span>
+            </button>
+            <button
+              onClick={() => scroll('right')}
+              className="size-10 rounded-xl border border-slate-200 dark:border-surface-border flex items-center justify-center hover:bg-primary hover:text-white hover:border-primary transition-all active:scale-90"
+            >
+              <span className="material-symbols-outlined">chevron_right</span>
+            </button>
+            <button
+              onClick={() => onNavigate(Page.LISTING)}
+              className="ml-4 px-6 py-2.5 rounded-xl border border-slate-200 dark:border-surface-border text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all hidden sm:block font-display"
+            >
+              Tất cả
+            </button>
+          </div>
         </div>
+
         {cfLoading ? (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 px-2">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="rounded-3xl bg-white dark:bg-surface-dark border border-slate-100 dark:border-surface-border p-6 animate-pulse">
                 <div className="aspect-square bg-slate-100 dark:bg-white/5 rounded-2xl mb-4"></div>
@@ -225,35 +235,65 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
               </div>
             ))}
           </div>
-        ) : aiPickProducts.length > 0 ? (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+        ) : (
+          <div
+            ref={scrollContainerRef}
+            className="flex gap-6 overflow-x-auto snap-x snap-mandatory no-scrollbar px-2 pb-6"
+          >
             {aiPickProducts.map(p => (
-              <ProductCard
-                key={p.id}
-                product={p}
-                onSelect={onProductSelect}
-                onAddToCart={onAddToCart}
-                onBuyNow={onBuyNow}
-              />
+              <div key={p.id} className="min-w-[280px] md:min-w-[320px] snap-start">
+                <ProductCard
+                  product={p}
+                  onSelect={onProductSelect}
+                  onAddToCart={onAddToCart}
+                  onBuyNow={onBuyNow}
+                />
+              </div>
             ))}
           </div>
-        ) : (
-          <div className="text-center py-10 text-slate-500">
-            <p>Chưa có sản phẩm để gợi ý</p>
-          </div>
         )}
+
         {cfRecommendations.length > 0 && (
-          <div className="flex items-center justify-center gap-2 text-xs text-slate-400 mt-2">
+          <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
             <span className="material-symbols-outlined !text-[16px] text-primary">psychology</span>
             <span className="font-medium italic">Được gợi ý bởi Collaborative Filtering AI dựa trên hành vi mua hàng</span>
           </div>
         )}
       </section>
 
+      {/* New Arrivals Section */}
+      <section className="flex flex-col gap-8">
+        <div className="flex items-center justify-between px-2">
+          <div className="flex items-center gap-4">
+            <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+              <span className="material-symbols-outlined font-variation-fill">new_releases</span>
+            </div>
+            <h2 className="text-2xl font-black font-display tracking-tight uppercase">Sản phẩm mới</h2>
+          </div>
+          <button
+            onClick={() => onNavigate(Page.LISTING)}
+            className="text-xs font-black text-primary uppercase tracking-widest hover:underline"
+          >
+            Xem thêm
+          </button>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 px-2">
+          {newArrivals.map(p => (
+            <ProductCard
+              key={p.id}
+              product={p}
+              onSelect={onProductSelect}
+              onAddToCart={onAddToCart}
+              onBuyNow={onBuyNow}
+            />
+          ))}
+        </div>
+      </section>
+
       {/* Gaming Banner Carousel */}
       <section
         onClick={() => onNavigate(Page.LISTING)}
-        className="rounded-[2.5rem] overflow-hidden relative min-h-[300px] flex items-center group cursor-pointer shadow-2xl"
+        className="rounded-[2.5rem] overflow-hidden relative min-h-[300px] flex items-center group cursor-pointer shadow-2xl mx-2"
       >
         {gamingPromos.map((promo, index) => (
           <div key={index} className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentGamingIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
@@ -262,7 +302,6 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
               className={`absolute inset-0 w-full h-full object-cover origin-center transform transition-transform duration-[6s] ease-out ${index === currentGamingIndex ? 'scale-105' : 'scale-100'}`}
               alt={promo.badge}
             />
-            {/* Dynamic Gradient Overlays */}
             <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent"></div>
             <div className="absolute inset-0 bg-gradient-to-t from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 mix-blend-screen pointer-events-none z-10"></div>
 
@@ -270,27 +309,15 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
               <span className="bg-primary text-white text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-widest shadow-lg shadow-primary/30">
                 {promo.badge}
               </span>
-
-              <h3
-                className="text-3xl md:text-5xl font-black text-white font-display max-w-xl leading-tight tracking-tighter drop-shadow-xl"
-                dangerouslySetInnerHTML={{ __html: promo.title }}
-              />
-
-              <p className="text-slate-300 text-lg md:text-xl font-light leading-relaxed max-w-lg mb-4">
-                {promo.subtitle}
-              </p>
-
-              <button
-                onClick={(e) => { e.stopPropagation(); onNavigate(Page.LISTING); }}
-                className="group/btn mt-2 px-8 py-4 bg-primary text-white font-bold text-sm tracking-wide rounded-2xl hover:bg-primary-dark transition-all shadow-[0_0_30px_-5px_var(--tw-shadow-color)] shadow-primary/40 flex items-center gap-3 hover:-translate-y-1 active:scale-95 border border-primary-light/30"
-              >
+              <h3 className="text-3xl md:text-5xl font-black text-white font-display max-w-xl leading-tight tracking-tighter drop-shadow-xl" dangerouslySetInnerHTML={{ __html: promo.title }} />
+              <p className="text-slate-300 text-lg md:text-xl font-light leading-relaxed max-w-lg mb-4">{promo.subtitle}</p>
+              <button className="group/btn mt-2 px-8 py-4 bg-primary text-white font-bold text-sm tracking-wide rounded-2xl hover:bg-primary-dark transition-all shadow-[0_0_30px_-5px_var(--tw-shadow-color)] shadow-primary/40 flex items-center gap-3 hover:-translate-y-1 active:scale-95 border border-primary-light/30">
                 Khám phá trọn bộ
                 <span className="material-symbols-outlined !text-[20px] transition-transform group-hover/btn:translate-x-1">arrow_forward</span>
               </button>
             </div>
           </div>
         ))}
-        {/* Gaming Banner Indicators */}
         <div className="absolute bottom-6 right-8 flex gap-2 z-30">
           {gamingPromos.map((_, i) => (
             <button
@@ -303,17 +330,25 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
         </div>
       </section>
 
-      {/* Bestsellers */}
+      {/* Bestsellers - Now showing 8 products */}
       <section className="flex flex-col gap-8">
-        <div className="flex items-center gap-4">
-          <div className="size-10 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
-            <span className="material-symbols-outlined font-variation-fill">local_fire_department</span>
+        <div className="flex items-center justify-between px-2">
+          <div className="flex items-center gap-4">
+            <div className="size-10 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
+              <span className="material-symbols-outlined font-variation-fill">local_fire_department</span>
+            </div>
+            <h2 className="text-2xl font-black font-display tracking-tight uppercase">Sản phẩm bán chạy</h2>
           </div>
-          <h2 className="text-2xl font-black font-display tracking-tight uppercase">Sản phẩm bán chạy</h2>
+          <button
+            onClick={() => onNavigate(Page.LISTING)}
+            className="text-xs font-black text-slate-400 uppercase tracking-widest hover:text-primary transition-colors"
+          >
+            Xem tất cả
+          </button>
         </div>
         {products.length > 4 ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {products.slice(4, 8).map(p => (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 px-2">
+            {bestSellers.map(p => (
               <ProductCard
                 key={p.id}
                 product={p}

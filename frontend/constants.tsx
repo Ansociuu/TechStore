@@ -7,6 +7,8 @@ export const MOCK_USER: User = {
   email: "dat.nguyen@email.com",
   avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuDH4yVze214xUWhLjdxBSu9W7WULFBGY8F5vwYo3SW-iWPq_NJZH_dsXgkXCmVppnTO2vkXGBJKOxR5xkBQ4nK-DW18IcVYANHz_Veer973NOA927RGtLJ-8t5zIdszxzyn6jV-kSilQwB9k1S44Qmfa2hWWMBmlPFq63P4UI9K6qCPtdeQap60hWT2UjGsN-4tprL_wC1zxLjiT18R5UP6kiLSwdu6ryZzNxTrCW1Tjsyoeb_JAXm8Kd6vF6dKBkXiqHqiBKe_38s",
   rank: 'Platinum',
+  points: 1250,
+  aiScore: 88,
   phone: "0987654321",
   birthday: "1995-05-15",
   gender: 'male',
