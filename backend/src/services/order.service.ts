@@ -41,10 +41,15 @@ export const createOrder = async (userId: number, orderData: any) => {
             });
         }
 
-        // 4. Xóa giỏ hàng
+        // 4. Xóa các sản phẩm đã đặt khỏi giỏ hàng
         const cart = await tx.cart.findUnique({ where: { userId } });
         if (cart) {
-            await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+            await tx.cartItem.deleteMany({
+                where: {
+                    cartId: cart.id,
+                    productId: { in: items.map((i: any) => Number(i.productId)) }
+                }
+            });
         }
 
         // 5. Cập nhật voucher

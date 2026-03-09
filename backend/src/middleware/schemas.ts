@@ -18,13 +18,13 @@ export const loginSchema = z.object({
 export const orderSchema = z.object({
     body: z.object({
         shippingAddress: z.string().min(10, 'Địa chỉ giao hàng quá ngắn'),
-        paymentMethod: z.enum(['cod', 'momo', 'banking']),
+        paymentMethod: z.enum(['cod', 'momo', 'banking', 'visa']),
         items: z.array(z.object({
-            productId: z.number(),
+            productId: z.coerce.number(),
             quantity: z.number().positive(),
             price: z.number().positive(),
         })).min(1, 'Giỏ hàng không được để trống'),
-        voucherId: z.number().nullable().optional(),
+        voucherId: z.coerce.number().nullable().optional(),
         discountAmount: z.number().optional().default(0),
     }),
 });
