@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Page, Product, Order, Address } from '../types';
 import { orderAPI, userAPI, voucherAPI, productAPI } from '../services/apiService';
+import { VN_PROVINCES, fetchDistricts, fetchWards } from '../data/addressData';
 
 interface ProfileProps {
   user: User;
@@ -54,6 +55,11 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
   const [loadingVouchers, setLoadingVouchers] = useState(false);
   const [wishlist, setWishlist] = useState<Product[]>([]);
   const [loadingWishlist, setLoadingWishlist] = useState(false);
+  const [districts, setDistricts] = useState<{ id: string, name: string }[]>([]);
+  const [wards, setWards] = useState<{ id: string, name: string }[]>([]);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
+  const [loadingWards, setLoadingWards] = useState(false);
+
 
   // Fetch full user profile, orders, vouchers, and wishlist on mount
   useEffect(() => {
@@ -229,6 +235,42 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
       onUpdateUser(fullUser);
     } catch (error) {
       console.error('Lỗi khi đặt địa chỉ mặc định:', error);
+    }
+  };
+
+  const handleProvinceChange = async (provinceId: string) => {
+    const province = VN_PROVINCES.find(p => p.id === provinceId)?.name || '';
+    setAddressForm({
+      ...addressForm,
+      province,
+      district: '',
+      ward: ''
+    });
+    setDistricts([]);
+    setWards([]);
+
+    if (provinceId) {
+      setLoadingDistricts(true);
+      const data = await fetchDistricts(provinceId);
+      setDistricts(data);
+      setLoadingDistricts(false);
+    }
+  };
+
+  const handleDistrictChange = async (districtId: string) => {
+    const district = districts.find(d => d.id === districtId)?.name || '';
+    setAddressForm({
+      ...addressForm,
+      district,
+      ward: ''
+    });
+    setWards([]);
+
+    if (districtId) {
+      setLoadingWards(true);
+      const data = await fetchWards(districtId);
+      setWards(data);
+      setLoadingWards(false);
     }
   };
 
@@ -581,9 +623,53 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
                       />
                     </label>
                     <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <input placeholder="Tỉnh/Thành phố" value={addressForm.province} onChange={(e) => setAddressForm({ ...addressForm, province: e.target.value })} className="h-12 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-4 text-sm font-bold outline-none focus:border-primary" required />
-                      <input placeholder="Quận/Huyện" value={addressForm.district} onChange={(e) => setAddressForm({ ...addressForm, district: e.target.value })} className="h-12 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-4 text-sm font-bold outline-none focus:border-primary" required />
-                      <input placeholder="Phường/Xã" value={addressForm.ward} onChange={(e) => setAddressForm({ ...addressForm, ward: e.target.value })} className="h-12 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-4 text-sm font-bold outline-none focus:border-primary" required />
+                      {/* Province Select */}
+                      <div className="relative group/select">
+                        <select
+                          value={VN_PROVINCES.find(p => p.name === addressForm.province)?.id || ''}
+                          onChange={(e) => handleProvinceChange(e.target.value)}
+                          className="w-full h-12 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-4 text-sm font-bold outline-none focus:border-primary appearance-none cursor-pointer"
+                          required
+                        >
+                          <option value="">Chọn Tỉnh/Thành</option>
+                          {VN_PROVINCES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        </select>
+                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[18px]">expand_more</span>
+                      </div>
+
+                      {/* District Select */}
+                      <div className="relative group/select">
+                        <select
+                          value={districts.find(d => d.name === addressForm.district)?.id || ''}
+                          onChange={(e) => handleDistrictChange(e.target.value)}
+                          className="w-full h-12 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-4 text-sm font-bold outline-none focus:border-primary appearance-none cursor-pointer disabled:opacity-50"
+                          required
+                          disabled={!addressForm.province || loadingDistricts}
+                        >
+                          <option value="">{loadingDistricts ? 'Đang tải...' : 'Chọn Quận/Huyện'}</option>
+                          {districts.map((d: any) => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                          ))}
+                        </select>
+                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[18px]">expand_more</span>
+                      </div>
+
+                      {/* Ward Select */}
+                      <div className="relative group/select">
+                        <select
+                          value={addressForm.ward}
+                          onChange={(e) => setAddressForm({ ...addressForm, ward: e.target.value })}
+                          className="w-full h-12 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-4 text-sm font-bold outline-none focus:border-primary appearance-none cursor-pointer disabled:opacity-50"
+                          required
+                          disabled={!addressForm.district || loadingWards}
+                        >
+                          <option value="">{loadingWards ? 'Đang tải...' : 'Chọn Phường/Xã'}</option>
+                          {wards.map((w: any) => (
+                            <option key={w.id} value={w.name}>{w.name}</option>
+                          ))}
+                        </select>
+                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[18px]">expand_more</span>
+                      </div>
                     </div>
                     <label className="md:col-span-2 flex flex-col gap-2">
                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Địa chỉ chi tiết</span>
@@ -627,10 +713,27 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
                             <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/5 text-slate-500 text-[8px] font-black uppercase tracking-widest">{addr.type === 'home' ? 'Nhà riêng' : 'Văn phòng'}</span>
                           </div>
                           <div className="flex gap-2">
-                            <button onClick={() => {
+                            <button onClick={async () => {
                               setEditingAddress(addr);
                               setAddressForm(addr);
                               setIsAddingAddress(true);
+
+                              // Fetch initial lists for the selected address
+                              const provinceId = VN_PROVINCES.find(p => p.name === addr.province)?.id;
+                              if (provinceId) {
+                                setLoadingDistricts(true);
+                                const dList = await fetchDistricts(provinceId);
+                                setDistricts(dList);
+                                setLoadingDistricts(false);
+
+                                const districtId = dList.find((d: any) => d.name === addr.district)?.id;
+                                if (districtId) {
+                                  setLoadingWards(true);
+                                  const wList = await fetchWards(districtId);
+                                  setWards(wList);
+                                  setLoadingWards(false);
+                                }
+                              }
                             }} className="size-8 rounded-lg bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400 hover:text-primary transition-colors">
                               <span className="material-symbols-outlined !text-[18px]">edit</span>
                             </button>

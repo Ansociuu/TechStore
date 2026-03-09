@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { CartItem, Page, Product, User, Address } from '../types';
 import { PRODUCTS } from '../constants';
 import { orderAPI, userAPI, voucherAPI } from '../services/apiService';
+import { VN_PROVINCES, fetchDistricts, fetchWards } from '../data/addressData';
 
 interface CheckoutProps {
   cart: CartItem[];
@@ -24,8 +25,51 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, onNavigate, onAddToCart, user
     address: '',
     city: '',
     district: '',
+    ward: '',
     paymentMethod: 'cod',
   });
+
+  const [districts, setDistricts] = useState<{ id: string, name: string }[]>([]);
+  const [wards, setWards] = useState<{ id: string, name: string }[]>([]);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
+  const [loadingWards, setLoadingWards] = useState(false);
+
+
+  const handleProvinceChange = async (provinceId: string) => {
+    const province = VN_PROVINCES.find(p => p.id === provinceId)?.name || '';
+    setFormData({
+      ...formData,
+      city: province,
+      district: '',
+      ward: ''
+    });
+    setDistricts([]);
+    setWards([]);
+
+    if (provinceId) {
+      setLoadingDistricts(true);
+      const data = await fetchDistricts(provinceId);
+      setDistricts(data);
+      setLoadingDistricts(false);
+    }
+  };
+
+  const handleDistrictChange = async (districtId: string) => {
+    const district = districts.find(d => d.id === districtId)?.name || '';
+    setFormData({
+      ...formData,
+      district,
+      ward: ''
+    });
+    setWards([]);
+
+    if (districtId) {
+      setLoadingWards(true);
+      const data = await fetchWards(districtId);
+      setWards(data);
+      setLoadingWards(false);
+    }
+  };
 
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('new');
@@ -84,9 +128,22 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, onNavigate, onAddToCart, user
               name: defaultAddr.name,
               phone: defaultAddr.phone,
               address: defaultAddr.detail,
+              ward: defaultAddr.ward,
               district: defaultAddr.district,
               city: defaultAddr.province
             }));
+
+            // Prefetch for default address
+            const pId = VN_PROVINCES.find(p => p.name === defaultAddr.province)?.id;
+            if (pId) {
+              const dList = await fetchDistricts(pId);
+              setDistricts(dList);
+              const dId = dList.find((d: any) => d.name === defaultAddr.district)?.id;
+              if (dId) {
+                const wList = await fetchWards(dId);
+                setWards(wList);
+              }
+            }
           }
         } catch (error) {
           console.error('Lỗi khi tải địa chỉ:', error);
@@ -96,16 +153,34 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, onNavigate, onAddToCart, user
     }
   }, [user]);
 
-  const handleAddressSelect = (addr: Address) => {
+  const handleAddressSelect = async (addr: Address) => {
     setSelectedAddressId(addr.id);
     setFormData(prev => ({
       ...prev,
       name: addr.name,
       phone: addr.phone,
       address: addr.detail,
+      ward: addr.ward,
       district: addr.district,
       city: addr.province
     }));
+
+    // Fetch lists for the selected address
+    const pId = VN_PROVINCES.find(p => p.name === addr.province)?.id;
+    if (pId) {
+      setLoadingDistricts(true);
+      const dList = await fetchDistricts(pId);
+      setDistricts(dList);
+      setLoadingDistricts(false);
+
+      const dId = dList.find((d: any) => d.name === addr.district)?.id;
+      if (dId) {
+        setLoadingWards(true);
+        const wList = await fetchWards(dId);
+        setWards(wList);
+        setLoadingWards(false);
+      }
+    }
   };
 
   const handleAddNewAddress = () => {
@@ -115,9 +190,12 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, onNavigate, onAddToCart, user
       name: user?.name || '',
       phone: user?.phone || '',
       address: '',
+      ward: '',
       district: '',
       city: ''
     }));
+    setDistricts([]);
+    setWards([]);
   };
 
   const subtotal = useMemo(() => cart.reduce((acc, item) => acc + (item.price * item.quantity), 0), [cart]);
@@ -141,7 +219,7 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, onNavigate, onAddToCart, user
       try {
         setLoading(true);
         const orderData = {
-          shippingAddress: `${formData.address}, ${formData.district}, ${formData.city}`,
+          shippingAddress: `${formData.address}, ${formData.ward}, ${formData.district}, ${formData.city}`,
           paymentMethod: formData.paymentMethod,
           items: cart.map(item => ({
             productId: item.id,
@@ -316,26 +394,57 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, onNavigate, onAddToCart, user
                           type="text"
                         />
                       </label>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <label className="flex flex-col gap-2">
                           <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Tỉnh / Thành phố</span>
-                          <input
-                            required
-                            placeholder="VD: Hà Nội"
-                            value={formData.city}
-                            onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                            className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                          />
+                          <div className="relative group/select">
+                            <select
+                              required
+                              value={VN_PROVINCES.find(p => p.name === formData.city)?.id || ''}
+                              onChange={(e) => handleProvinceChange(e.target.value)}
+                              className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all cursor-pointer appearance-none"
+                            >
+                              <option value="">Chọn Tỉnh/Thành</option>
+                              {VN_PROVINCES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                            <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+                          </div>
                         </label>
                         <label className="flex flex-col gap-2">
                           <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Quận / Huyện</span>
-                          <input
-                            required
-                            placeholder="VD: Quận Cầu Giấy"
-                            value={formData.district}
-                            onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-                            className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                          />
+                          <div className="relative group/select">
+                            <select
+                              required
+                              value={districts.find(d => d.name === formData.district)?.id || ''}
+                              onChange={(e) => handleDistrictChange(e.target.value)}
+                              className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all cursor-pointer appearance-none disabled:opacity-50"
+                              disabled={!formData.city || loadingDistricts}
+                            >
+                              <option value="">{loadingDistricts ? 'Đang tải...' : 'Chọn Quận/Huyện'}</option>
+                              {districts.map((d: any) => (
+                                <option key={d.id} value={d.id}>{d.name}</option>
+                              ))}
+                            </select>
+                            <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+                          </div>
+                        </label>
+                        <label className="flex flex-col gap-2">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Phường / Xã</span>
+                          <div className="relative group/select">
+                            <select
+                              required
+                              value={formData.ward}
+                              onChange={(e) => setFormData({ ...formData, ward: e.target.value })}
+                              className="w-full h-14 rounded-xl border border-slate-100 dark:border-surface-border bg-slate-50 dark:bg-black/20 px-5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all cursor-pointer appearance-none disabled:opacity-50"
+                              disabled={!formData.district || loadingWards}
+                            >
+                              <option value="">{loadingWards ? 'Đang tải...' : 'Chọn Phường/Xã'}</option>
+                              {wards.map((w: any) => (
+                                <option key={w.id} value={w.name}>{w.name}</option>
+                              ))}
+                            </select>
+                            <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+                          </div>
                         </label>
                       </div>
                       <div className="flex items-center gap-3 pt-4">
