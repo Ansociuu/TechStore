@@ -60,6 +60,27 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
   const [loadingDistricts, setLoadingDistricts] = useState(false);
   const [loadingWards, setLoadingWards] = useState(false);
 
+  // Review state
+  const [reviewProduct, setReviewProduct] = useState<{ id: string | number, name: string, image: string } | null>(null);
+  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewProduct) return;
+    try {
+      setIsSubmittingReview(true);
+      await productAPI.addReview(reviewProduct.id, reviewForm.rating, reviewForm.comment);
+      alert('Đánh giá sản phẩm thành công!');
+      setReviewProduct(null);
+      setReviewForm({ rating: 5, comment: '' });
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Có lỗi xảy ra khi gửi đánh giá');
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
 
   // Fetch full user profile, orders, vouchers, and wishlist on mount
   useEffect(() => {
@@ -136,7 +157,7 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
 
       // Map API response to Order type
       const mappedOrders = data.map((order: any) => ({
-        id: `#ORD-${order.id}`,
+        id: String(order.id),
         date: new Date(order.createdAt).toLocaleDateString('vi-VN'),
         total: order.total,
         discountAmount: order.discountAmount || 0,
@@ -149,7 +170,8 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
           price: item.price,
           quantity: item.quantity,
           image: item.product.image || 'https://via.placeholder.com/150',
-          category: item.product.category
+          category: item.product.category,
+          productId: item.productId || item.product?.id
         }))
       }));
 
@@ -526,12 +548,12 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
                 </div>
               ) : (
                 orders.map(order => (
-                  <div key={order.id} onClick={() => onOrderSelect(order)} className="bg-white dark:bg-surface-dark rounded-[2rem] border border-slate-100 dark:border-surface-border overflow-hidden shadow-sm hover:border-primary transition-all cursor-pointer group">
+                  <div key={order.id} className="bg-white dark:bg-surface-dark rounded-[2rem] border border-slate-100 dark:border-surface-border overflow-hidden shadow-sm group">
                     <div className="p-6 md:p-8 bg-slate-50 dark:bg-black/20 border-b border-slate-100 dark:border-surface-border flex flex-wrap justify-between items-center gap-4">
                       <div className="flex gap-8">
                         <div>
                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Mã đơn hàng</p>
-                          <p className="text-sm font-black group-hover:text-primary transition-colors">{order.id}</p>
+                          <p className="text-sm font-black group-hover:text-primary transition-colors">#ORD-{order.id}</p>
                         </div>
                         <div>
                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ngày đặt</p>
@@ -544,15 +566,36 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
                     </div>
                     <div className="p-8 space-y-6">
                       {order.items.map((item, idx) => (
-                        <div key={idx} className="flex gap-6 items-center">
-                          <div className="size-16 rounded-xl bg-slate-50 dark:bg-black/40 p-2 flex-shrink-0 border border-slate-100 dark:border-surface-border">
+                        <div key={idx}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (item.productId) {
+                              onProductSelect({ id: String(item.productId) } as Product);
+                            }
+                          }}
+                          className="flex gap-6 items-center p-3 -m-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors group/item">
+                          <div className="size-16 rounded-xl bg-slate-100 dark:bg-black/40 p-2 flex-shrink-0 border border-slate-200 dark:border-surface-border group-hover/item:border-primary transition-colors">
                             <img src={item.image} alt={item.name} className="size-full object-contain mix-blend-multiply dark:mix-blend-normal" />
                           </div>
                           <div className="flex-1">
-                            <h4 className="text-xs font-black line-clamp-1">{item.name}</h4>
+                            <h4 className="text-xs font-black line-clamp-1 group-hover/item:text-primary transition-colors">{item.name}</h4>
                             <p className="text-[10px] text-slate-500 mt-1">Số lượng: {item.quantity}</p>
                           </div>
-                          <span className="text-xs font-black text-primary">{item.price.toLocaleString('vi-VN')}₫</span>
+                          <div className="flex flex-col items-end gap-2">
+                            <span className="text-xs font-black text-primary">{item.price.toLocaleString('vi-VN')}₫</span>
+                            {order.status === 'delivered' && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setReviewProduct({ id: item.productId || '', name: item.name, image: item.image });
+                                  setReviewForm({ rating: 5, comment: '' });
+                                }}
+                                className="px-3 py-1.5 rounded-lg border border-primary text-[10px] font-black uppercase text-primary tracking-widest hover:bg-primary hover:text-white transition-colors"
+                              >
+                                Đánh giá
+                              </button>
+                            )}
+                          </div>
                         </div>
                       ))}
                       <div className="pt-6 border-t border-slate-100 dark:border-surface-border flex flex-col md:flex-row justify-between items-center gap-6">
@@ -567,13 +610,81 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
                             </span>
                           )}
                         </div>
-                        <span className="text-[10px] font-black uppercase text-primary tracking-widest group-hover:translate-x-1 transition-transform flex items-center gap-2">
+                        <button
+                          onClick={() => onOrderSelect(order)}
+                          className="text-[10px] font-black uppercase text-primary tracking-widest hover:translate-x-1 transition-transform flex items-center gap-2 p-2 -m-2 rounded-xl hover:bg-primary/5"
+                        >
                           Xem chi tiết <span className="material-symbols-outlined !text-[16px]">arrow_forward</span>
-                        </span>
+                        </button>
                       </div>
                     </div>
                   </div>
                 ))
+              )}
+
+              {/* Review Modal */}
+              {reviewProduct && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                  <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setReviewProduct(null)}></div>
+                  <div className="relative w-full max-w-md bg-white dark:bg-surface-dark rounded-[2.5rem] p-8 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-xl font-black font-display tracking-tight">Đánh giá sản phẩm</h3>
+                      <button onClick={() => setReviewProduct(null)} className="size-8 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center hover:text-red-500 transition-colors">
+                        <span className="material-symbols-outlined !text-[18px]">close</span>
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-white/5 mb-6">
+                      <img src={reviewProduct.image} alt={reviewProduct.name} className="size-16 rounded-xl object-contain mix-blend-multiply dark:mix-blend-normal" />
+                      <p className="text-sm font-bold line-clamp-2">{reviewProduct.name}</p>
+                    </div>
+
+                    <form onSubmit={handleReviewSubmit} className="space-y-6">
+                      <div className="space-y-3 text-center">
+                        <label className="text-xs font-black uppercase text-slate-500 tracking-widest block">Trải nghiệm của bạn</label>
+                        <div className="flex justify-center gap-2">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              type="button"
+                              onClick={() => setReviewForm({ ...reviewForm, rating: star })}
+                              className={`material-symbols-outlined !text-4xl transition-all ${star <= reviewForm.rating ? 'text-yellow-400 font-variation-fill scale-110' : 'text-slate-200 hover:text-yellow-200'} shrink-0`}
+                            >
+                              star
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-primary">
+                          {['Rất tệ', 'Tệ', 'Bình thường', 'Tốt', 'Rất tốt'][reviewForm.rating - 1]}
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-xs font-black uppercase text-slate-500 tracking-widest">Nội dung đánh giá</label>
+                        <textarea
+                          placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm này..."
+                          value={reviewForm.comment}
+                          onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
+                          className="w-full h-32 rounded-2xl bg-slate-50 dark:bg-white/5 p-4 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20 resize-none border border-slate-100 dark:border-white/10"
+                          required
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={isSubmittingReview}
+                        className="w-full py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/30 hover:-translate-y-1 transition-all disabled:opacity-50 disabled:hover:translate-y-0 disabled:shadow-none flex items-center justify-center gap-2"
+                      >
+                        {isSubmittingReview ? (
+                          <>
+                            <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            Đang gửi...
+                          </>
+                        ) : 'Gửi đánh giá'}
+                      </button>
+                    </form>
+                  </div>
+                </div>
               )}
             </div>
           )}

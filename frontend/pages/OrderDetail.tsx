@@ -113,7 +113,7 @@ export default function OrderDetail({ order: initialOrder, user, onNavigate }: O
           <span className="material-symbols-outlined !text-[14px]">chevron_right</span>
           <Link to="/profile" className="hover:text-primary transition-colors">Lịch sử</Link>
           <span className="material-symbols-outlined !text-[14px]">chevron_right</span>
-          <span className="text-primary">{currentOrder.id}</span>
+          <span className="text-primary">#ORD-{currentOrder.id}</span>
         </nav>
       </div>
 
@@ -125,7 +125,7 @@ export default function OrderDetail({ order: initialOrder, user, onNavigate }: O
               <span className="bg-red-500 text-white text-[10px] px-3 py-1 rounded-full uppercase tracking-widest font-black">Đã hủy</span>
             )}
           </h1>
-          <p className="text-slate-500 text-sm font-medium">Mã đơn: <span className="text-slate-900 dark:text-white font-bold">{currentOrder.id}</span> • {currentOrder.date || (currentOrder as any).createdAt}</p>
+          <p className="text-slate-500 text-sm font-medium">Mã đơn: <span className="text-slate-900 dark:text-white font-bold">#ORD-{currentOrder.id}</span> • {currentOrder.date || (currentOrder as any).createdAt}</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -187,21 +187,28 @@ export default function OrderDetail({ order: initialOrder, user, onNavigate }: O
               <h3 className="text-sm font-black uppercase tracking-widest font-display text-slate-900 dark:text-white">Sản phẩm đã mua</h3>
             </div>
             <div className="divide-y divide-slate-100 dark:divide-surface-border">
-              {currentOrder.items.map((item, idx) => (
-                <div key={idx} className="p-6 flex items-center gap-6 group hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                  <div className="size-20 rounded-2xl bg-white p-2 border border-slate-100 dark:border-surface-border flex-shrink-0 cursor-pointer" onClick={() => navigate(`/product/${item.id}`)}>
-                    <img src={item.image} alt={item.name} className="size-full object-contain" />
+              {currentOrder.items.map((item: any, idx) => {
+                const prodName = item.name || item.product?.name;
+                const prodImage = item.image || item.product?.image;
+                const prodCategory = item.category || item.product?.category;
+                const pId = item.productId || item.product?.id || item.id;
+
+                return (
+                  <div key={idx} className="p-6 flex items-center gap-6 group hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                    <div className="size-20 rounded-2xl bg-white p-2 border border-slate-100 dark:border-surface-border flex-shrink-0 cursor-pointer" onClick={() => navigate(`/product/${pId}`)}>
+                      <img src={prodImage} alt={prodName} className="size-full object-contain" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-black text-slate-900 dark:text-white truncate cursor-pointer hover:text-primary transition-colors" onClick={() => navigate(`/product/${pId}`)}>{prodName}</h4>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">{prodCategory}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-black text-primary">{item.price.toLocaleString('vi-VN')}₫</p>
+                      <p className="text-[10px] text-slate-400 font-bold">Số lượng: {item.quantity}</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-black text-slate-900 dark:text-white truncate cursor-pointer" onClick={() => navigate(`/product/${item.id}`)}>{item.name}</h4>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">{item.category}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-black text-primary">{item.price.toLocaleString('vi-VN')}₫</p>
-                    <p className="text-[10px] text-slate-400 font-bold">Số lượng: {item.quantity}</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

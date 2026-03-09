@@ -17,7 +17,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product: initialProduct, 
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(initialProduct || null);
-  const [loading, setLoading] = useState(!initialProduct);
+  const [loading, setLoading] = useState(!initialProduct || !initialProduct.name);
   const [quantity, setQuantity] = useState(1);
   const [aiAnalysis, setAiAnalysis] = useState<string>('');
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
@@ -32,7 +32,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product: initialProduct, 
   useEffect(() => {
     const fetchProduct = async () => {
       if (!id) return;
-      if (initialProduct && initialProduct.id === id) {
+      if (initialProduct && initialProduct.id === id && initialProduct.name) {
         setProduct(initialProduct);
         setReviews(initialProduct.reviews || []);
         setLoading(false);
@@ -126,7 +126,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product: initialProduct, 
     );
   }
 
-  if (!product) return null;
+  if (!product || !product.name) return null;
 
   return (
     <div className="flex flex-col gap-6 pb-20 max-w-6xl mx-auto animate-in fade-in duration-500">
@@ -174,11 +174,11 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product: initialProduct, 
               <div className="flex items-center gap-2">
                 <div className="flex text-yellow-500">
                   {[...Array(5)].map((_, i) => (
-                    <span key={i} className={`material-symbols-outlined !text-[20px] ${i < Math.floor(product.rating) ? 'font-variation-fill' : ''}`}>star</span>
+                    <span key={i} className={`material-symbols-outlined !text-[20px] ${i < Math.floor(product.rating || 0) ? 'font-variation-fill' : ''}`}>star</span>
                   ))}
                 </div>
-                <span className="font-black text-slate-900 dark:text-white text-base">{product.rating.toFixed(1)}</span>
-                <span className="text-slate-400 font-medium text-sm">({product.reviewCount} Reviews)</span>
+                <span className="font-black text-slate-900 dark:text-white text-base">{(product.rating || 0).toFixed(1)}</span>
+                <span className="text-slate-400 font-medium text-sm">({product.reviewCount || 0} Reviews)</span>
               </div>
               <div className="h-4 w-px bg-slate-200 dark:bg-surface-border hidden md:block"></div>
               <div className="text-green-500 font-black text-sm uppercase tracking-widest flex items-center gap-2">
@@ -190,13 +190,13 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product: initialProduct, 
 
           <div className="space-y-4">
             <div className="flex items-end gap-4">
-              <span className="text-5xl font-black text-primary tracking-tighter">{product.price.toLocaleString('vi-VN')}₫</span>
+              <span className="text-5xl font-black text-primary tracking-tighter">{(product.price || 0).toLocaleString('vi-VN')}₫</span>
               {product.originalPrice && (
-                <span className="text-2xl text-slate-400 line-through mb-1">{(product.originalPrice).toLocaleString('vi-VN')}₫</span>
+                <span className="text-2xl text-slate-400 line-through mb-1">{(product.originalPrice || 0).toLocaleString('vi-VN')}₫</span>
               )}
             </div>
             <p className="text-xs font-black text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/5 w-fit px-4 py-2 rounded-xl uppercase tracking-widest">
-              Trả góp chỉ từ {(product.price / 12).toLocaleString('vi-VN', { maximumFractionDigits: 0 })}₫/tháng
+              Trả góp chỉ từ {((product.price || 0) / 12).toLocaleString('vi-VN', { maximumFractionDigits: 0 })}₫/tháng
             </p>
           </div>
 
@@ -216,7 +216,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product: initialProduct, 
                 <div className="h-4 bg-slate-200 dark:bg-white/10 rounded w-4/5"></div>
                 <div className="h-4 bg-slate-200 dark:bg-white/10 rounded w-full"></div>
               </div>
-            ) : (
+            ) : aiAnalysis ? (
               <div className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed space-y-3 relative z-10 font-medium">
                 {aiAnalysis.split('\n').map((line: string, i: number) => (
                   <p key={i} className="flex gap-2">
@@ -225,7 +225,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product: initialProduct, 
                   </p>
                 ))}
               </div>
-            )}
+            ) : null}
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 pt-6">

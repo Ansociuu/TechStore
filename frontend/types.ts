@@ -38,6 +38,7 @@ export interface CartItem extends Product {
 
 export interface OrderItem {
   id?: string;
+  productId: string | number;
   name: string;
   price: number;
   quantity: number;
