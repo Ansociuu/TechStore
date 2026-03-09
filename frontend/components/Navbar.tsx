@@ -1,8 +1,8 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Page, User, Notification } from '../types';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Page, User, Notification, Product } from '../types';
 import NotificationPopover from './NotificationPopover';
+import { productAPI } from '../services/apiService';
 
 interface NavbarProps {
   user: User | null;
@@ -29,25 +29,76 @@ const Navbar: React.FC<NavbarProps> = ({
   onSearch,
   onCategorySelect
 }) => {
+  const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [suggestions, setSuggestions] = useState<Product[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => {
+    const saved = localStorage.getItem('recentSearches');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const searchRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
+  // Handle hotkey '/'
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+      if (e.key === 'Escape') {
+        setShowDropdown(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Click outside to close results
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
         setIsNotifOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Debounced search for suggestions
+  useEffect(() => {
+    if (searchValue.trim().length < 2) {
+      setSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsLoadingSuggestions(true);
+      try {
+        const data = await productAPI.getAll({ search: searchValue, limit: 5 });
+        setSuggestions(data.products || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [searchValue]);
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
@@ -58,9 +109,28 @@ const Navbar: React.FC<NavbarProps> = ({
     }
   };
 
+  const saveRecentSearch = (query: string) => {
+    if (!query.trim()) return;
+    const updated = [query, ...recentSearches.filter(s => s !== query)].slice(0, 5);
+    setRecentSearches(updated);
+    localStorage.setItem('recentSearches', JSON.stringify(updated));
+  };
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSearch(searchValue);
+    if (searchValue.trim()) {
+      saveRecentSearch(searchValue);
+      onSearch(searchValue);
+      setShowDropdown(false);
+      inputRef.current?.blur();
+    }
+  };
+
+  const handleSuggestionClick = (product: Product) => {
+    saveRecentSearch(searchValue);
+    navigate(`/product/${product.id}`);
+    setShowDropdown(false);
+    setSearchValue('');
   };
 
   const handleCategoryClick = (category: string) => {
@@ -70,6 +140,13 @@ const Navbar: React.FC<NavbarProps> = ({
       onNavigate(Page.LISTING);
     }
     setIsMenuOpen(false);
+  };
+
+  const removeRecentSearch = (e: React.MouseEvent, text: string) => {
+    e.stopPropagation();
+    const updated = recentSearches.filter(s => s !== text);
+    setRecentSearches(updated);
+    localStorage.setItem('recentSearches', JSON.stringify(updated));
   };
 
   return (
@@ -115,17 +192,102 @@ const Navbar: React.FC<NavbarProps> = ({
         {/* Right: Search & Actions */}
         <div className="flex items-center gap-3 flex-1 justify-end">
 
-          {/* Search Form */}
-          <form onSubmit={handleSearchSubmit} className="hidden xl:flex relative w-full max-w-[280px] group">
-            <button type="submit" className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors text-[20px]">search</button>
-            <input
-              type="text"
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-              placeholder="Tìm kiếm..."
-              className="w-full bg-slate-100 dark:bg-surface-dark border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-            />
-          </form>
+          {/* Search Content */}
+          <div ref={searchRef} className="hidden xl:flex relative w-full max-w-[320px] group">
+            <form onSubmit={handleSearchSubmit} className="w-full relative">
+              <button type="submit" className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors text-[20px]">search</button>
+              <input
+                ref={inputRef}
+                type="text"
+                value={searchValue}
+                onFocus={() => setShowDropdown(true)}
+                onChange={(e) => setSearchValue(e.target.value)}
+                placeholder="Tìm kiếm..."
+                className="w-full bg-slate-100 dark:bg-surface-dark border-none rounded-2xl py-2.5 pl-11 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+              />
+              {searchValue && (
+                <button
+                  type="button"
+                  onClick={() => { setSearchValue(''); inputRef.current?.focus(); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                >
+                  <span className="material-symbols-outlined !text-[18px]">close</span>
+                </button>
+              )}
+            </form>
+
+            {/* Suggestions Dropdown */}
+            {showDropdown && (
+              <div className="absolute top-full left-0 w-full mt-3 bg-white dark:bg-[#161d2b] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 z-[100]">
+                {/* Recent Searches */}
+                {!searchValue && recentSearches.length > 0 && (
+                  <div className="p-2">
+                    <div className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 flex justify-between items-center">
+                      <span>Tìm kiếm gần đây</span>
+                    </div>
+                    {recentSearches.map((text, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between group/item px-3 py-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl cursor-pointer transition-colors"
+                        onClick={() => { setSearchValue(text); onSearch(text); setShowDropdown(false); }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="material-symbols-outlined text-[18px] text-slate-400">history</span>
+                          <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{text}</span>
+                        </div>
+                        <button
+                          onClick={(e) => removeRecentSearch(e, text)}
+                          className="opacity-0 group-hover/item:opacity-100 p-1 hover:bg-slate-200 dark:hover:bg-white/10 rounded-md transition-all"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">close</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Suggestions Results */}
+                {searchValue && (
+                  <div className="p-2">
+                    <div className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 flex justify-between items-center">
+                      <span>{isLoadingSuggestions ? 'Đang tìm kiếm...' : 'Gợi ý sản phẩm'}</span>
+                    </div>
+
+                    {suggestions.length > 0 ? (
+                      <div className="space-y-1">
+                        {suggestions.map((product) => (
+                          <div
+                            key={product.id}
+                            onClick={() => handleSuggestionClick(product)}
+                            className="flex items-center gap-3 p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl cursor-pointer transition-all group"
+                          >
+                            <div className="size-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0">
+                              <img src={product.image} alt={product.name} className="size-full object-cover transition-transform group-hover:scale-110" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate">{product.name}</h4>
+                              <p className="text-xs font-bold text-primary">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.price)}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : !isLoadingSuggestions && (
+                      <div className="p-4 text-center">
+                        <span className="material-symbols-outlined text-slate-300 text-[40px] mb-2">search_off</span>
+                        <p className="text-xs font-medium text-slate-400">Không tìm thấy sản phẩm</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Footer Tips */}
+                <div className="bg-slate-50 dark:bg-white/5 px-4 py-2 border-t border-slate-100 dark:border-white/5 flex justify-between items-center">
+                  <span className="text-[10px] text-slate-400 font-medium">Nhấn <kbd className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300">Enter</kbd> để tìm tất cả</span>
+                  <span className="text-[10px] text-slate-400 font-medium tracking-tight">TechStore-AI Suggestions</span>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Dark Mode Toggle */}
           <button

@@ -7,9 +7,11 @@ interface ProductCardProps {
   onSelect: (product: Product) => void;
   onAddToCart: (product: Product) => void;
   onBuyNow: (product: Product) => void;
+  isFavorite?: boolean;
+  onToggleWishlist?: (product: Product) => void;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect, onAddToCart, onBuyNow }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect, onAddToCart, onBuyNow, isFavorite = false, onToggleWishlist }) => {
   return (
     <div className="group relative bg-white dark:bg-surface-dark border border-slate-100 dark:border-surface-border rounded-2xl overflow-hidden hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500 hover:-translate-y-1">
       {/* Badges */}
@@ -23,6 +25,19 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect, onAddToCar
         {product.discount && (
           <span className="bg-orange-500 text-white text-[8px] font-black px-2 py-1 rounded uppercase tracking-widest shadow-lg">{product.discount}</span>
         )}
+      </div>
+
+      {/* Favorite Button */}
+      <div className="absolute top-3 right-3 z-10">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleWishlist?.(product);
+          }}
+          className={`size-8 rounded-xl flex items-center justify-center transition-all bg-white/90 dark:bg-black/40 backdrop-blur-md shadow-lg border border-transparent active:scale-90 ${isFavorite ? 'text-red-500 border-red-100 dark:border-red-500/20' : 'text-slate-400 hover:text-red-400'}`}
+        >
+          <span className={`material-symbols-outlined !text-[18px] ${isFavorite ? 'font-variation-fill' : ''}`}>favorite</span>
+        </button>
       </div>
 
       {/* Image Container */}

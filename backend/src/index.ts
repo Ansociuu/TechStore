@@ -12,6 +12,7 @@ import userRoutes from './routes/user.routes';
 import recommendationRoutes from './routes/recommendation.routes';
 import aiRoutes from './routes/ai.routes';
 import voucherRoutes from './routes/voucher.routes';
+import wishlistRoutes from './routes/wishlist.routes';
 
 dotenv.config();
 
@@ -32,6 +33,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/vouchers', voucherRoutes);
+app.use('/api/wishlist', wishlistRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {
