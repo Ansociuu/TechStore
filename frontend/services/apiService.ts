@@ -327,4 +327,24 @@ export const voucherAPI = {
     }
 };
 
+// Wishlist API
+export const wishlistAPI = {
+    get: async () => {
+        const response = await apiClient.get('/wishlist');
+        return response.data;
+    },
+    toggle: async (productId: string | number) => {
+        const response = await apiClient.post(`/wishlist/${productId}/toggle`);
+        return response.data;
+    },
+    add: async (productId: string | number) => {
+        const response = await apiClient.post(`/wishlist/${productId}`);
+        return response.data;
+    },
+    remove: async (productId: string | number) => {
+        const response = await apiClient.delete(`/wishlist/${productId}`);
+        return response.data;
+    }
+};
+
 export default apiClient;

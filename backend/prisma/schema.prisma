@@ -29,6 +29,7 @@ model User {
   orders           Order[]
   addresses        Address[]
   reviews          Review[]
+  wishlist         Wishlist[]
 }
 
 model Address {
@@ -69,6 +70,7 @@ model Product {
   description   String      @db.Text
   price         Float
   image         String      @db.VarChar(500)
+  images        Json?
   category      String
   stock         Int         @default(0)
   createdAt     DateTime    @default(now())
@@ -82,6 +84,7 @@ model Product {
   cartItems     CartItem[]
   orderItems    OrderItem[]
   reviews       Review[]
+  wishlist      Wishlist[]
 }
 
 model Cart {
@@ -168,4 +171,17 @@ model Voucher {
   orders      Order[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Wishlist {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  productId Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
 }

@@ -213,6 +213,12 @@ async function main() {
                 stock: p.stock,
                 category: p.category,
                 image: getAIImage(p.name, p.category),
+                images: [
+                    getAIImage(p.name, p.category),
+                    getAIImage(p.name, p.category),
+                    getAIImage(p.name, p.category),
+                    getAIImage(p.name, p.category),
+                ],
                 rating: p.rating,
                 reviewCount: p.reviewCount,
                 isHot: p.isHot,

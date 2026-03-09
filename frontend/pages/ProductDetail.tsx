@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Product, Page, Review, User } from '../types';
 import { analyzeProductSpec } from '../services/geminiService';
-import { recommendationAPI, productAPI, authAPI } from '../services/apiService';
+import { recommendationAPI, productAPI, authAPI, wishlistAPI } from '../services/apiService';
 import ProductCard from '../components/ProductCard';
 
 interface ProductDetailProps {
@@ -26,6 +26,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product: initialProduct, 
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string>('');
   const currentUser: User | null = authAPI.getCurrentUser();
 
   // Fetch product if not provided or ID changed
@@ -58,7 +59,13 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product: initialProduct, 
     };
 
     fetchProduct();
-  }, [id, initialProduct, navigate]);
+  }, [id, initialProduct]);
+
+  useEffect(() => {
+    if (product?.image) {
+      setSelectedImage(product.image);
+    }
+  }, [product]);
 
   useEffect(() => {
     if (product?.name) {
@@ -118,6 +125,37 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product: initialProduct, 
     fetchRelated();
   }, [product?.id]);
 
+  useEffect(() => {
+    const checkFavoriteStatus = async () => {
+      if (currentUser && product?.id) {
+        try {
+          const wishlist = await wishlistAPI.get();
+          const isItemInWishlist = wishlist.some((p: Product) => String(p.id) === String(product.id));
+          setIsFavorite(isItemInWishlist);
+        } catch (error) {
+          console.error('Lỗi khi kiểm tra trạng thái yêu thích:', error);
+        }
+      }
+    };
+    checkFavoriteStatus();
+  }, [currentUser, product?.id]);
+
+  const handleToggleFavorite = async () => {
+    if (!currentUser || !product) {
+      if (!currentUser) navigate('/auth');
+      return;
+    }
+    try {
+      const result = await wishlistAPI.toggle(product.id);
+      setIsFavorite(result.status === 'added');
+      // Toast/Alert
+      alert(result.message);
+    } catch (error) {
+      console.error('Lỗi khi thay đổi trạng thái yêu thích:', error);
+      alert('Không thể cập nhật danh sách yêu thích');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -143,7 +181,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product: initialProduct, 
         {/* Gallery */}
         <div className="flex flex-col gap-6 sticky top-24">
           <div className="relative aspect-[4/3] bg-white dark:bg-surface-dark rounded-[2.5rem] overflow-hidden shadow-2xl border border-slate-100 dark:border-surface-border p-12 group">
-            <img src={product.image} alt={product.name} className="size-full object-contain mix-blend-multiply dark:mix-blend-normal group-hover:scale-105 transition-transform duration-700" />
+            <img src={selectedImage || product.image} alt={product.name} className="size-full object-contain mix-blend-multiply dark:mix-blend-normal group-hover:scale-105 transition-transform duration-700" />
             <div className="absolute top-8 left-8 z-10 flex flex-col gap-2">
               {product.isNew && <span className="bg-primary text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-xl">New Arrival</span>}
               <div className="bg-indigo-600/90 backdrop-blur-md text-white text-[10px] font-black px-4 py-1.5 rounded-full flex items-center gap-2 uppercase tracking-widest shadow-xl border border-white/20">
@@ -152,9 +190,13 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product: initialProduct, 
             </div>
           </div>
           <div className="grid grid-cols-4 gap-4 px-2">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className={`aspect-square rounded-2xl border-2 transition-all cursor-pointer overflow-hidden p-3 bg-white dark:bg-surface-dark ${i === 0 ? 'border-primary shadow-lg shadow-primary/10' : 'border-transparent hover:border-slate-300 dark:hover:border-slate-700 opacity-60 hover:opacity-100'}`}>
-                <img src={product.image} className="size-full object-contain" />
+            {(product.images && product.images.length > 0 ? product.images : [product.image, product.image, product.image, product.image]).map((img, i) => (
+              <div
+                key={i}
+                onClick={() => setSelectedImage(img)}
+                className={`aspect-square rounded-2xl border-2 transition-all cursor-pointer overflow-hidden p-3 bg-white dark:bg-surface-dark ${(selectedImage === img || (!selectedImage && i === 0)) ? 'border-primary shadow-lg shadow-primary/10 opacity-100 scale-105' : 'border-transparent hover:border-slate-300 dark:hover:border-slate-700 opacity-60 hover:opacity-100'}`}
+              >
+                <img src={img} alt={`${product.name} ${i + 1}`} className="size-full object-contain" />
               </div>
             ))}
           </div>
@@ -264,13 +306,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product: initialProduct, 
               Mua ngay
             </button>
             <button
-              onClick={() => {
-                const nextState = !isFavorite;
-                setIsFavorite(nextState);
-                if (nextState) {
-                  alert('Đã thêm sản phẩm vào danh sách yêu thích!');
-                }
-              }}
+              onClick={handleToggleFavorite}
               className={`rounded-2xl size-16 flex items-center justify-center transition-all active:scale-95 border ${isFavorite ? 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20 text-red-500' : 'bg-slate-100 dark:bg-white/5 border-transparent hover:border-slate-200 dark:hover:border-slate-700 text-slate-900 dark:text-white'}`}
             >
               <span className={`material-symbols-outlined !text-[28px] ${isFavorite ? 'font-variation-fill' : ''}`}>favorite</span>

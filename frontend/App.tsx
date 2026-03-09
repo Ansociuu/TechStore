@@ -1,7 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { Page, Product, CartItem, User, Order, Notification } from './types';
-import { productAPI, authAPI, cartAPI, notificationAPI } from './services/apiService';
+import { productAPI, authAPI, cartAPI, notificationAPI, wishlistAPI } from './services/apiService';
 import Navbar from './components/Navbar';
 import ScrollToTop from './components/ScrollToTop';
 
@@ -49,6 +49,7 @@ const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [wishlistIds, setWishlistIds] = useState<number[]>([]);
 
   // Lấy dữ liệu sản phẩm từ API khi component mount
   useEffect(() => {
@@ -92,8 +93,30 @@ const App: React.FC = () => {
       // Fetch Notifications
       const notifs = await notificationAPI.getAll();
       setNotifications(notifs);
+
+      // Fetch Wishlist
+      const wishlist = await wishlistAPI.get();
+      setWishlistIds(wishlist.map((p: any) => p.id));
     } catch (error) {
       console.error('Lỗi khi tải dữ liệu người dùng:', error);
+    }
+  };
+
+  const handleToggleWishlist = async (product: Product) => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    try {
+      const result = await wishlistAPI.toggle(product.id);
+      if (result.status === 'added') {
+        setWishlistIds(prev => [...prev, Number(product.id)]);
+      } else {
+        setWishlistIds(prev => prev.filter(id => id !== Number(product.id)));
+      }
+      alert(result.message);
+    } catch (error) {
+      console.error('Lỗi khi thay đổi trạng thái yêu thích:', error);
     }
   };
 
@@ -212,6 +235,7 @@ const App: React.FC = () => {
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
+    setCategoryQuery('All'); // Reset category when performing a search
     if (query.trim()) {
       navigate('/listing');
     }
@@ -293,6 +317,8 @@ const App: React.FC = () => {
                     default: navigate('/');
                   }
                 }}
+                wishlistIds={wishlistIds}
+                onToggleWishlist={handleToggleWishlist}
               />
             } />
 
@@ -349,6 +375,8 @@ const App: React.FC = () => {
                 }}
                 searchQuery={searchQuery}
                 initialCategory={categoryQuery}
+                wishlistIds={wishlistIds}
+                onToggleWishlist={handleToggleWishlist}
               />
             } />
 

@@ -12,9 +12,11 @@ interface ListingProps {
   onNavigate: (page: Page) => void;
   searchQuery?: string;
   initialCategory?: string;
+  wishlistIds?: number[];
+  onToggleWishlist?: (product: Product) => void;
 }
 
-const Listing: React.FC<ListingProps> = ({ onProductSelect, onAddToCart, onBuyNow, onNavigate, searchQuery = '', initialCategory = 'All' }) => {
+const Listing: React.FC<ListingProps> = ({ onProductSelect, onAddToCart, onBuyNow, onNavigate, searchQuery = '', initialCategory = 'All', wishlistIds = [], onToggleWishlist }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState<any>(null);
@@ -188,6 +190,8 @@ const Listing: React.FC<ListingProps> = ({ onProductSelect, onAddToCart, onBuyNo
                   onSelect={onProductSelect}
                   onAddToCart={onAddToCart}
                   onBuyNow={onBuyNow}
+                  isFavorite={wishlistIds.includes(Number(product.id))}
+                  onToggleWishlist={onToggleWishlist}
                 />
               ))}
             </div>

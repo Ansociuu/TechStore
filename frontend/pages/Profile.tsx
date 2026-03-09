@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Page, Product, Order, Address } from '../types';
-import { orderAPI, userAPI, voucherAPI, productAPI } from '../services/apiService';
+import { orderAPI, userAPI, voucherAPI, productAPI, wishlistAPI } from '../services/apiService';
 import { VN_PROVINCES, fetchDistricts, fetchWards } from '../data/addressData';
 
 interface ProfileProps {
@@ -117,9 +117,8 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
   const fetchWishlist = async () => {
     try {
       setLoadingWishlist(true);
-      // Since backend doesn't have wishlist yet, we'll mock it with some products
-      const data = await productAPI.getAll({ limit: 4 });
-      setWishlist(data.products.slice(0, 2));
+      const data = await wishlistAPI.get();
+      setWishlist(data);
     } catch (error) {
       console.error('Failed to fetch wishlist:', error);
     } finally {
@@ -926,7 +925,11 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
                 Danh sách yêu thích
               </h2>
 
-              {wishlist.length === 0 ? (
+              {loadingWishlist ? (
+                <div className="flex justify-center p-12">
+                  <div className="size-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                </div>
+              ) : wishlist.length === 0 ? (
                 <div className="text-center p-12 bg-slate-50 dark:bg-black/20 rounded-3xl">
                   <span className="material-symbols-outlined text-4xl text-slate-300 mb-4">favorite</span>
                   <p className="text-slate-500 font-bold">Danh sách yêu thích trống</p>
@@ -935,14 +938,25 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {wishlist.map(product => (
-                    <div key={product.id} onClick={() => onProductSelect(product)} className="bg-white dark:bg-surface-dark p-4 rounded-3xl border border-slate-100 dark:border-surface-border flex gap-4 hover:border-primary transition-all cursor-pointer group">
+                    <div key={product.id} onClick={() => onProductSelect(product)} className="bg-white dark:bg-surface-dark p-4 rounded-3xl border border-slate-100 dark:border-surface-border flex gap-4 hover:border-primary transition-all cursor-pointer group relative">
                       <div className="size-20 rounded-2xl bg-slate-50 dark:bg-black/40 p-2 flex-shrink-0">
                         <img src={product.image} alt={product.name} className="size-full object-contain" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-black line-clamp-1 group-hover:text-primary transition-colors">{product.name}</h4>
                         <p className="text-xs text-primary font-black mt-1">{product.price.toLocaleString('vi-VN')}₫</p>
-                        <button className="mt-2 text-[10px] font-black text-red-500 flex items-center gap-1 hover:underline">
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              await wishlistAPI.remove(product.id);
+                              fetchWishlist();
+                            } catch (err) {
+                              console.error('Failed to remove from wishlist:', err);
+                            }
+                          }}
+                          className="mt-2 text-[10px] font-black text-red-500 flex items-center gap-1 hover:underline"
+                        >
                           <span className="material-symbols-outlined !text-[14px]">delete</span> Gỡ bỏ
                         </button>
                       </div>

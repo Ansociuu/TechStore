@@ -9,9 +9,11 @@ interface HomeProps {
   onAddToCart: (product: Product) => void;
   onBuyNow: (product: Product) => void;
   onNavigate: (page: Page) => void;
+  wishlistIds?: number[];
+  onToggleWishlist?: (product: Product) => void;
 }
 
-const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onBuyNow, onNavigate }) => {
+const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onBuyNow, onNavigate, wishlistIds = [], onToggleWishlist }) => {
   const trending = products.slice(0, 10);
   const heroProducts = products.slice(0, 5);
   const bestSellers = products.slice(4, 12);
@@ -279,15 +281,17 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
                 e.preventDefault();
               }
             }}
-            className={`flex gap-6 overflow-x-auto snap-x snap-mandatory no-scrollbar px-2 pb-6 ${isDragging ? 'cursor-grabbing select-none snap-none' : 'cursor-grab'}`}
+            className={`flex gap-6 overflow-x-auto snap-x snap-mandatory no-scrollbar px-2 pb-8 ${isDragging ? 'cursor-grabbing select-none snap-none' : 'cursor-grab'}`}
           >
-            {aiPickProducts.map(p => (
-              <div key={p.id} className="min-w-[280px] md:min-w-[320px] snap-start">
+            {cfRecommendations.map(product => (
+              <div key={product.id} className="min-w-[280px] md:min-w-[320px] snap-start flex-shrink-0">
                 <ProductCard
-                  product={p}
+                  product={product}
                   onSelect={onProductSelect}
                   onAddToCart={onAddToCart}
                   onBuyNow={onBuyNow}
+                  isFavorite={wishlistIds.includes(Number(product.id))}
+                  onToggleWishlist={onToggleWishlist}
                 />
               </div>
             ))}
@@ -326,6 +330,8 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
               onSelect={onProductSelect}
               onAddToCart={onAddToCart}
               onBuyNow={onBuyNow}
+              isFavorite={wishlistIds.includes(Number(p.id))}
+              onToggleWishlist={onToggleWishlist}
             />
           ))}
         </div>
@@ -396,6 +402,8 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
                 onSelect={onProductSelect}
                 onAddToCart={onAddToCart}
                 onBuyNow={onBuyNow}
+                isFavorite={wishlistIds.includes(Number(p.id))}
+                onToggleWishlist={onToggleWishlist}
               />
             ))}
           </div>
