@@ -25,6 +25,13 @@ async function main() {
     }
     console.log(`✅ Đã tạo / cập nhật ${users.length} người dùng bot.`);
 
+    // 1b. Lấy thêm tài khoản admin và user mẫu để tạo lịch sử mua hàng
+    const mainAdmin = await prisma.user.findUnique({ where: { email: 'admin@techstore.com' } });
+    const mainUser = await prisma.user.findUnique({ where: { email: 'user@techstore.com' } });
+
+    if (mainAdmin) users.push(mainAdmin);
+    if (mainUser) users.push(mainUser);
+
     // 2. Lấy danh sách sản phẩm hiện có
     const allProducts = await prisma.product.findMany();
     if (allProducts.length === 0) {
@@ -41,14 +48,14 @@ async function main() {
     const sonyHeadphone = findProduct('Sony WH');
     const marshallSpeaker = findProduct('Marshall');
     const appleWatch = findProduct('Apple Watch');
-    const ipad16 = findProduct('iPad A16');
-    const teclastM50 = findProduct('Teclast M50');
-    const pdkb = findProduct('bao da iPad Air');
+    const samsungS24 = findProduct('Samsung Galaxy S24');
+    const appleWatchUltra = findProduct('Apple Watch Ultra');
 
     // 3. Tạo các mẫu mua sắm (Shopping Patterns)
     console.log('📦 Đang tạo các đơn hàng mẫu...');
 
     const createOrder = async (userId: number, products: any[]) => {
+        if (products.length === 0) return null;
         const total = products.reduce((sum, p) => sum + p.price, 0);
         return prisma.order.create({
             data: {
@@ -69,9 +76,9 @@ async function main() {
     };
 
     // Nhóm 1: Apple Ecosystem (User 1-5)
-    if (iphone && appleWatch && macbookAir) {
+    if (iphone && appleWatchUltra && macbookAir) {
         for (let i = 0; i < 5; i++) {
-            await createOrder(users[i].id, [iphone, appleWatch]);
+            await createOrder(users[i].id, [iphone, appleWatchUltra]);
             if (i % 2 === 0) await createOrder(users[i].id, [macbookAir]);
         }
     }
@@ -98,17 +105,19 @@ async function main() {
         await createOrder(users[i].id, randomProducts);
     }
 
-    // Nhóm 5: Tablets & Accessories (User 21-25)
-    if (ipad16 || teclastM50 || pdkb) {
-        for (let i = 20; i < 25; i++) {
-            const products = [];
-            if (ipad16 && i % 2 === 0) products.push(ipad16);
-            if (teclastM50 && i % 2 !== 0) products.push(teclastM50);
-            if (pdkb) products.push(pdkb);
-            if (products.length > 0) {
-                await createOrder(users[i].id, products);
-            }
+    // Nhóm 5: Tablets & Accessories (User 21+)
+    // Sử dụng sản phẩm Samsung hoặc ngẫu nhiên nếu không có iPad
+    const secondaryProducts = [samsungS24, appleWatchUltra, sonyHeadphone].filter(p => p !== undefined);
+
+    for (let i = 20; i < users.length; i++) {
+        const products = [];
+        if (secondaryProducts.length > 0) {
+            products.push(secondaryProducts[i % secondaryProducts.length]);
+        } else {
+            // Fallback: chọn ngẫu nhiên 1 sản phẩm từ DB
+            products.push(allProducts[Math.floor(Math.random() * allProducts.length)]);
         }
+        await createOrder(users[i].id, products as any[]);
     }
 
     console.log('🎉 Đã tạo dữ liệu đơn hàng mẫu thành công!');

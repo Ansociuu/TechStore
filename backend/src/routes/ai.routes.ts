@@ -55,9 +55,12 @@ QUY TẮC:
 
         const aiResponse = response.text || 'Xin lỗi, tôi không thể trả lời lúc này.';
         res.json({ response: aiResponse });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Lỗi AI chat:', error);
-        res.status(500).json({ error: 'Lỗi khi xử lý AI chat' });
+        if (error.status === 429 || error?.message?.includes('429')) {
+            return res.json({ response: 'Thành thật xin lỗi, do số lượng khách hàng gửi tin nhắn quá lớn nên hệ thống AI tôi hiện đang bị quá tải (Limit 429 API Key). Thầy cô/bạn vui lòng nhập lại một API Key mới để tôi có thể tiếp tục hỗ trợ, hoặc tham khảo các cấu hình Máy tính, Phụ kiện trực tiếp tại giỏ hàng nhé!' });
+        }
+        res.status(500).json({ error: 'Lỗi khi xử lý AI chat: ' + (error.message || 'Lỗi không xác định') });
     }
 });
 
@@ -95,9 +98,12 @@ QUY TẮC:
 
         const aiResponse = response.text || 'Xin lỗi, tôi không thể trả lời lúc này.';
         res.json({ response: aiResponse });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Lỗi AI chat public:', error);
-        res.status(500).json({ error: 'Lỗi khi xử lý AI chat' });
+        if (error.status === 429 || error?.message?.includes('429')) {
+            return res.json({ response: 'Thành thật xin lỗi, do số lượng khách hàng gửi tin nhắn quá lớn nên hệ thống AI tôi hiện đang bị quá tải (Limit 429 API Key). Thầy cô/bạn vui lòng nhập lại một API Key mới để tôi có thể tiếp tục hỗ trợ, hoặc tham khảo các cấu hình Máy tính, Phụ kiện trực tiếp tại giỏ hàng nhé!' });
+        }
+        res.status(500).json({ error: 'Lỗi khi xử lý AI chat: ' + (error.message || 'Lỗi không xác định') });
     }
 });
 

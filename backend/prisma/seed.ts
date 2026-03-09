@@ -15,16 +15,6 @@ const getAIImage = (name: string, category: string): string => {
 async function main() {
     console.log('🌱 Bắt đầu seed data...');
 
-    // // Xóa dữ liệu cũ để tránh trùng lặp
-    // console.log('🗑️  Xóa dữ liệu cũ...');
-    // await prisma.cartItem.deleteMany();
-    // await prisma.cart.deleteMany();
-    // await prisma.orderItem.deleteMany();
-    // await prisma.order.deleteMany();
-    // await prisma.product.deleteMany();
-    // await prisma.user.deleteMany();
-    // await prisma.voucher.deleteMany(); 
-
     // Tạo tài khoản Admin
     const adminPassword = await bcrypt.hash('admin123', 10);
     const admin = await prisma.user.upsert({
