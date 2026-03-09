@@ -202,11 +202,11 @@ const Auth: React.FC<AuthProps> = ({ onNavigate, onLogin }) => {
 
           <div className="grid grid-cols-2 gap-4">
             <button className="flex items-center justify-center gap-3 h-12 border border-slate-100 dark:border-surface-border rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-all bg-white dark:bg-transparent shadow-sm group">
-              <img alt="Google" className="size-5 group-hover:scale-110 transition-transform" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCKur42-ZX-1NIZgQGan58POKEhUh1MUPpuPQOrAGvYV-Da7Qx_UhdMBx_oOKYvMTSPhk1addJc_QOetsu4HP1_nLFDIfI71HzKhRp67sa3TXFDR6MHo6LktvLwVSr4BDeROUZ3iZrwcYOQCcSstdoOcobKAChg2ma4CVNirYUhA7dy_CSlsIV0RInQui5vYlcppbFBTSczAfw6oamzDkC-uxNcSaB1yR6x7zeo5N7_YuOxw2lGB2d0omUscywYKljYpJJG-LAMSLo" />
+              <img alt="Google" className="size-5 group-hover:scale-110 transition-transform" src="https://www.google.com/images/branding/googleg/1x/googleg_standard_color_128dp.png" />
               <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Google</span>
             </button>
             <button className="flex items-center justify-center gap-3 h-12 border border-slate-100 dark:border-surface-border rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-all bg-white dark:bg-transparent shadow-sm group">
-              <img alt="Facebook" className="size-5 group-hover:scale-110 transition-transform" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfKZCNHla6y4vhqxkDasHfmN6w9JclQdEJfpuuF9GvzCVChr1Q-qsvGNUpjY10qfQ6t0Iz2ofBSNzl2FfJXutbqiU3Q-NFEsuVbV4syAMO0-bp9lkMTdHNzTiIP2_L7Sgn1U_3WQqxBZqH_lByEd1A1pGtQBxqx5YaW01m9-CbNurNHP2xVWBnAWdJZ0r6_ebUFZXMIBT9DdLwR1px7nWwzdXNQr3Id1h-46oM0k4--42Sg0qnl6QaKY3iyGfEeDAlIHgPvsPW9eU" />
+              <img alt="Facebook" className="size-5 group-hover:scale-110 transition-transform" src="https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg" />
               <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Facebook</span>
             </button>
           </div>

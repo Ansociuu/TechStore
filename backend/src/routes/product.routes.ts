@@ -89,10 +89,10 @@ router.post('/bulk-delete', authenticate, requireAdmin, async (req, res) => {
 });
 
 // Thêm đánh giá cho sản phẩm
-router.post('/:id/reviews', authenticate, async (req, res) => {
+router.post('/:id/reviews', authenticate, async (req: any, res) => {
     const { id } = req.params;
     const { rating, comment } = req.body;
-    const userId = (req as any).user.userId;
+    const userId = req.userId;
 
     try {
         // Kiểm tra xem user đã mua sản phẩm này chưa (chỉ đếm đơn hàng không bị huỷ)

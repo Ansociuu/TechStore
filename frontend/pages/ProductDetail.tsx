@@ -174,10 +174,10 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product: initialProduct, 
               <div className="flex items-center gap-2">
                 <div className="flex text-yellow-500">
                   {[...Array(5)].map((_, i) => (
-                    <span key={i} className="material-symbols-outlined !text-[20px] font-variation-fill">star</span>
+                    <span key={i} className={`material-symbols-outlined !text-[20px] ${i < Math.floor(product.rating) ? 'font-variation-fill' : ''}`}>star</span>
                   ))}
                 </div>
-                <span className="font-black text-slate-900 dark:text-white text-base">{product.rating}</span>
+                <span className="font-black text-slate-900 dark:text-white text-base">{product.rating.toFixed(1)}</span>
                 <span className="text-slate-400 font-medium text-sm">({product.reviewCount} Reviews)</span>
               </div>
               <div className="h-4 w-px bg-slate-200 dark:bg-surface-border hidden md:block"></div>
@@ -393,7 +393,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product: initialProduct, 
                             key={star}
                             type="button"
                             onClick={() => setNewReview({ ...newReview, rating: star })}
-                            className={`size-10 rounded-xl flex items-center justify-center transition-all ${newReview.rating >= star ? 'text-yellow-500' : 'text-slate-300'
+                            className={`size-10 rounded-xl flex items-center justify-center transition-all cursor-pointer hover:scale-110 ${newReview.rating >= star ? 'text-yellow-500' : 'text-slate-300'
                               }`}
                           >
                             <span className={`material-symbols-outlined !text-[28px] ${newReview.rating >= star ? 'font-variation-fill' : ''}`}>star</span>

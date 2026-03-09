@@ -24,12 +24,14 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [hasDragged, setHasDragged] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeftState, setScrollLeftState] = useState(0);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!scrollContainerRef.current) return;
     setIsDragging(true);
+    setHasDragged(false);
     setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
     setScrollLeftState(scrollContainerRef.current.scrollLeft);
   };
@@ -47,6 +49,9 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
     e.preventDefault();
     const x = e.pageX - scrollContainerRef.current.offsetLeft;
     const walk = (x - startX) * 2; // Scroll multiplier
+    if (Math.abs(walk) > 5) {
+      setHasDragged(true);
+    }
     scrollContainerRef.current.scrollLeft = scrollLeftState - walk;
   };
 
@@ -268,18 +273,22 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
             onMouseLeave={handleMouseLeave}
             onMouseUp={handleMouseUp}
             onMouseMove={handleMouseMove}
+            onClickCapture={(e) => {
+              if (hasDragged) {
+                e.stopPropagation();
+                e.preventDefault();
+              }
+            }}
             className={`flex gap-6 overflow-x-auto snap-x snap-mandatory no-scrollbar px-2 pb-6 ${isDragging ? 'cursor-grabbing select-none snap-none' : 'cursor-grab'}`}
           >
             {aiPickProducts.map(p => (
               <div key={p.id} className="min-w-[280px] md:min-w-[320px] snap-start">
-                <div className={isDragging ? 'pointer-events-none' : ''}>
-                  <ProductCard
-                    product={p}
-                    onSelect={onProductSelect}
-                    onAddToCart={onAddToCart}
-                    onBuyNow={onBuyNow}
-                  />
-                </div>
+                <ProductCard
+                  product={p}
+                  onSelect={onProductSelect}
+                  onAddToCart={onAddToCart}
+                  onBuyNow={onBuyNow}
+                />
               </div>
             ))}
           </div>

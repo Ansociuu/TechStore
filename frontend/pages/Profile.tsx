@@ -134,7 +134,7 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
         date: new Date(order.createdAt).toLocaleDateString('vi-VN'),
         total: order.total,
         discountAmount: order.discountAmount || 0,
-        status: orderAPI.getStatusLabel(order.status),
+        status: order.status,
         trackingStep: 1,
         paymentMethod: order.paymentMethod === 'cod' ? 'Thanh toán khi nhận hàng' : 'Thanh toán online',
         address: order.shippingAddress,
@@ -355,7 +355,7 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               { label: 'Đơn hàng', value: loadingOrders ? '...' : orders.length.toString(), icon: 'shopping_bag' },
-              { label: 'Tích lũy', value: loadingProfile ? '...' : (user.points?.toString() || '0'), icon: 'database' },
+              { label: 'Tích lũy', value: loadingOrders ? '...' : `${orders.filter(o => o.status === 'delivered').reduce((sum, o) => sum + o.total, 0).toLocaleString('vi-VN')}₫`, icon: 'account_balance_wallet' },
               { label: 'Voucher', value: loadingVouchers ? '...' : vouchers.length.toString(), icon: 'confirmation_number' },
               { label: 'Yêu thích', value: loadingWishlist ? '...' : wishlist.length.toString(), icon: 'favorite' },
             ].map((stat, i) => (

@@ -59,10 +59,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect, onAddToCar
           </div>
 
           <div className="flex items-center justify-between gap-2">
-            <div className="flex text-yellow-500">
-              {[...Array(5)].map((_, i) => (
-                <span key={i} className={`material-symbols-outlined !text-[12px] ${i < Math.floor(product.rating) ? 'font-variation-fill' : ''}`}>star</span>
-              ))}
+            <div className="flex items-center gap-2">
+              <div className="flex text-yellow-500">
+                {[...Array(5)].map((_, i) => (
+                  <span key={i} className={`material-symbols-outlined !text-[12px] ${i < Math.floor(product.rating) ? 'font-variation-fill' : ''}`}>star</span>
+                ))}
+              </div>
+              <span className="text-[10px] font-black text-slate-400">{product.rating.toFixed(1)}</span>
             </div>
 
             <div className="flex items-center gap-1.5">
