@@ -423,12 +423,12 @@ const App: React.FC = () => {
                 onAddToCart={handleAddToCart}
                 user={user}
                 onClearCart={(force) => {
-                  if (buyNowItem) {
-                    setBuyNowItem(null);
-                  } else if (checkoutItems.length > 0) {
-                    setCheckoutItems([]);
+                  setBuyNowItem(null);
+                  setCheckoutItems([]);
+                  if (force) {
+                    fetchUserContent(); // Đồng bộ lại giỏ hàng từ server (vừa bị Backend xóa món đã mua)
                   } else {
-                    handleClearCart(force);
+                    handleClearCart(false);
                   }
                 }}
               />
@@ -477,7 +477,13 @@ const App: React.FC = () => {
               />
             } />
 
-            <Route path="/ai-assistant" element={<AIAssistant onNavigate={(page) => navigate('/')} />} />
+            <Route path="/ai-assistant" element={
+              <AIAssistant
+                onNavigate={(page) => navigate('/')}
+                products={products}
+                onProductSelect={handleProductSelect}
+              />
+            } />
 
             <Route path="/admin" element={
               user?.role === 'admin' ? (

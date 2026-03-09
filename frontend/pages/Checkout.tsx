@@ -222,7 +222,7 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, onNavigate, onAddToCart, user
           shippingAddress: `${formData.address}, ${formData.ward}, ${formData.district}, ${formData.city}`,
           paymentMethod: formData.paymentMethod,
           items: cart.map(item => ({
-            productId: item.id,
+            productId: Number(item.id),
             quantity: item.quantity,
             price: item.price
           })),

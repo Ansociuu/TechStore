@@ -1,0 +1,172 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const prisma_1 = require("../lib/prisma");
+const validation_middleware_1 = require("../middleware/validation.middleware");
+const schemas_1 = require("../middleware/schemas");
+const router = express_1.default.Router();
+// Lấy giỏ hàng của user hiện tại
+router.get('/', auth_middleware_1.authenticate, async (req, res) => {
+    try {
+        const userId = req.userId;
+        let cart = await prisma_1.prisma.cart.findUnique({
+            where: { userId },
+            include: {
+                items: {
+                    include: {
+                        product: true,
+                    },
+                },
+            },
+        });
+        // Nếu chưa có giỏ hàng, tạo mới
+        if (!cart) {
+            cart = await prisma_1.prisma.cart.create({
+                data: { userId },
+                include: {
+                    items: {
+                        include: {
+                            product: true,
+                        },
+                    },
+                },
+            });
+        }
+        res.json(cart);
+    }
+    catch (error) {
+        console.error('Lỗi khi lấy giỏ hàng:', error);
+        res.status(500).json({ error: 'Lỗi server', details: error.message });
+    }
+});
+// Thêm sản phẩm vào giỏ hàng
+router.post('/items', auth_middleware_1.authenticate, (0, validation_middleware_1.validate)(schemas_1.cartItemSchema), async (req, res) => {
+    try {
+        const userId = req.userId;
+        const { productId, quantity = 1 } = req.body;
+        console.log(`[Cart/Items] User: ${userId}, Product: ${productId}, Qty: ${quantity}`);
+        // Kiểm tra sản phẩm có tồn tại không
+        const product = await prisma_1.prisma.product.findUnique({ where: { id: Number(productId) } });
+        if (!product) {
+            return res.status(404).json({ error: 'Không tìm thấy sản phẩm' });
+        }
+        // Kiểm tra tồn kho
+        if (product.stock < quantity) {
+            return res.status(400).json({ error: 'Không đủ hàng trong kho' });
+        }
+        // Lấy hoặc tạo giỏ hàng
+        let cart = await prisma_1.prisma.cart.findUnique({ where: { userId } });
+        if (!cart) {
+            cart = await prisma_1.prisma.cart.create({ data: { userId } });
+        }
+        // Kiểm tra sản phẩm đã có trong giỏ chưa
+        const existingItem = await prisma_1.prisma.cartItem.findUnique({
+            where: {
+                cartId_productId: {
+                    cartId: cart.id,
+                    productId: Number(productId),
+                },
+            },
+        });
+        if (existingItem) {
+            // Cập nhật số lượng
+            const updatedItem = await prisma_1.prisma.cartItem.update({
+                where: { id: existingItem.id },
+                data: { quantity: existingItem.quantity + quantity },
+                include: { product: true },
+            });
+            res.json(updatedItem);
+        }
+        else {
+            // Thêm mới
+            const newItem = await prisma_1.prisma.cartItem.create({
+                data: {
+                    cartId: cart.id,
+                    productId: Number(productId),
+                    quantity,
+                },
+                include: { product: true },
+            });
+            res.json(newItem);
+        }
+    }
+    catch (error) {
+        console.error('Lỗi khi thêm vào giỏ hàng:', error);
+        res.status(500).json({ error: 'Lỗi server', details: error.message });
+    }
+});
+// Cập nhật số lượng sản phẩm trong giỏ
+router.put('/items/:id', auth_middleware_1.authenticate, async (req, res) => {
+    try {
+        const userId = req.userId;
+        const itemId = Number(req.params.id);
+        const { quantity } = req.body;
+        if (!quantity || quantity < 1) {
+            return res.status(400).json({ error: 'Số lượng phải lớn hơn 0' });
+        }
+        // Kiểm tra item có thuộc user không
+        const item = await prisma_1.prisma.cartItem.findUnique({
+            where: { id: itemId },
+            include: { cart: true, product: true },
+        });
+        if (!item || item.cart.userId !== userId) {
+            return res.status(404).json({ error: 'Không tìm thấy item trong giỏ hàng' });
+        }
+        // Kiểm tra tồn kho
+        if (item.product.stock < quantity) {
+            return res.status(400).json({ error: 'Không đủ hàng trong kho' });
+        }
+        const updatedItem = await prisma_1.prisma.cartItem.update({
+            where: { id: itemId },
+            data: { quantity },
+            include: { product: true },
+        });
+        res.json(updatedItem);
+    }
+    catch (error) {
+        console.error('Lỗi khi cập nhật giỏ hàng:', error);
+        res.status(500).json({ error: 'Lỗi server' });
+    }
+});
+// Xóa sản phẩm khỏi giỏ hàng
+router.delete('/items/:id', auth_middleware_1.authenticate, async (req, res) => {
+    try {
+        const userId = req.userId;
+        const itemId = Number(req.params.id);
+        // Kiểm tra item có thuộc user không
+        const item = await prisma_1.prisma.cartItem.findUnique({
+            where: { id: itemId },
+            include: { cart: true },
+        });
+        if (!item || item.cart.userId !== userId) {
+            return res.status(404).json({ error: 'Không tìm thấy item trong giỏ hàng' });
+        }
+        await prisma_1.prisma.cartItem.delete({ where: { id: itemId } });
+        res.json({ message: 'Đã xóa sản phẩm khỏi giỏ hàng' });
+    }
+    catch (error) {
+        console.error('Lỗi khi xóa khỏi giỏ hàng:', error);
+        res.status(500).json({ error: 'Lỗi server' });
+    }
+});
+// Xóa toàn bộ giỏ hàng
+router.delete('/', auth_middleware_1.authenticate, async (req, res) => {
+    try {
+        const userId = req.userId;
+        const cart = await prisma_1.prisma.cart.findUnique({ where: { userId } });
+        if (!cart) {
+            return res.status(404).json({ error: 'Không tìm thấy giỏ hàng' });
+        }
+        await prisma_1.prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
+        res.json({ message: 'Đã xóa toàn bộ giỏ hàng' });
+    }
+    catch (error) {
+        console.error('Lỗi khi xóa giỏ hàng:', error);
+        res.status(500).json({ error: 'Lỗi server' });
+    }
+});
+exports.default = router;
