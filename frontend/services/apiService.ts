@@ -87,6 +87,10 @@ export const productAPI = {
         const response = await apiClient.delete(`/products/${id}`);
         return response.data;
     },
+    bulkDelete: async (ids: number[]) => {
+        const response = await apiClient.post('/products/bulk-delete', { ids });
+        return response.data;
+    },
     addReview: async (id: number | string, rating: number, comment: string) => {
         const response = await apiClient.post(`/products/${id}/reviews`, { rating, comment });
         return response.data;
@@ -135,8 +139,8 @@ export const orderAPI = {
         const response = await apiClient.put(`/orders/${id}/status`, { status });
         return response.data;
     },
-    getAllAdmin: async () => {
-        const response = await apiClient.get('/orders/admin/all');
+    getAllAdmin: async (params: { page?: number; limit?: number } = {}) => {
+        const response = await apiClient.get('/orders/admin/all', { params });
         return response.data;
     },
 
@@ -223,8 +227,8 @@ export const adminAPI = {
         const response = await apiClient.get('/admin/stats');
         return response.data;
     },
-    getUsers: async () => {
-        const response = await apiClient.get('/admin/users');
+    getUsers: async (params: { page?: number; limit?: number } = {}) => {
+        const response = await apiClient.get('/admin/users', { params });
         return response.data;
     },
     updateUserRole: async (id: number, role: string) => {
@@ -235,6 +239,10 @@ export const adminAPI = {
         const response = await apiClient.delete(`/admin/users/${id}`);
         return response.data;
     },
+    bulkDeleteUsers: async (ids: number[]) => {
+        const response = await apiClient.post('/admin/users/bulk-delete', { ids });
+        return response.data;
+    },
     uploadImage: async (file: File) => {
         const formData = new FormData();
         formData.append('image', file);
@@ -243,6 +251,40 @@ export const adminAPI = {
                 'Content-Type': 'multipart/form-data',
             },
         });
+        return response.data;
+    },
+    // Voucher Management
+    getVouchers: async (params: { page?: number; limit?: number; search?: string } = {}) => {
+        const response = await apiClient.get('/admin/vouchers', { params });
+        return response.data;
+    },
+    createVoucher: async (voucherData: any) => {
+        const response = await apiClient.post('/admin/vouchers', voucherData);
+        return response.data;
+    },
+    updateVoucher: async (id: number, voucherData: any) => {
+        const response = await apiClient.put(`/admin/vouchers/${id}`, voucherData);
+        return response.data;
+    },
+    deleteVoucher: async (id: number) => {
+        const response = await apiClient.delete(`/admin/vouchers/${id}`);
+        return response.data;
+    },
+    bulkDeleteVouchers: async (ids: number[]) => {
+        const response = await apiClient.post('/admin/vouchers/bulk-delete', { ids });
+        return response.data;
+    },
+    // Review Management
+    getReviews: async (params: { page?: number; limit?: number; search?: string; rating?: number } = {}) => {
+        const response = await apiClient.get('/admin/reviews', { params });
+        return response.data;
+    },
+    deleteReview: async (id: number) => {
+        const response = await apiClient.delete(`/admin/reviews/${id}`);
+        return response.data;
+    },
+    bulkDeleteReviews: async (ids: number[]) => {
+        const response = await apiClient.post('/admin/reviews/bulk-delete', { ids });
         return response.data;
     }
 };

@@ -101,7 +101,12 @@ const App: React.FC = () => {
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
     fetchUserContent();
-    navigate('/');
+
+    if (userData.role === 'admin') {
+      navigate('/admin');
+    } else {
+      navigate('/');
+    }
   };
 
   const handleProductSelect = (product: Product) => {

@@ -118,3 +118,19 @@ export enum Page {
   RESET_PASSWORD = 'RESET_PASSWORD'
 }
 
+export interface Voucher {
+  id: number;
+  code: string;
+  discount: number;
+  type: 'percentage' | 'fixed';
+  minOrder?: number;
+  maxDiscount?: number;
+  startDate: string;
+  endDate: string;
+  usageLimit?: number;
+  usageCount: number;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+

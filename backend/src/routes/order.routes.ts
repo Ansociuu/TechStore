@@ -140,26 +140,43 @@ router.put('/:id/status', authenticate, requireAdmin, async (req: AuthRequest, r
 // Lấy tất cả đơn hàng (Admin only)
 router.get('/admin/all', authenticate, requireAdmin, async (req: AuthRequest, res) => {
     try {
-        const orders = await prisma.order.findMany({
-            include: {
-                items: {
-                    include: {
-                        product: true,
-                    },
-                },
-                user: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                        phone: true,
-                    },
-                },
-            },
-            orderBy: { createdAt: 'desc' },
-        });
+        const { page = 1, limit = 10 } = req.query;
+        const skip = (Number(page) - 1) * Number(limit);
+        const take = Number(limit);
 
-        res.json(orders);
+        const [orders, total] = await Promise.all([
+            prisma.order.findMany({
+                include: {
+                    items: {
+                        include: {
+                            product: true,
+                        },
+                    },
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            phone: true,
+                        },
+                    },
+                },
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take,
+            }),
+            prisma.order.count(),
+        ]);
+
+        res.json({
+            orders,
+            pagination: {
+                total,
+                page: Number(page),
+                limit: Number(limit),
+                totalPages: Math.ceil(total / Number(limit)),
+            },
+        });
     } catch (error: any) {
         console.error('Lỗi khi lấy tất cả đơn hàng:', error);
         res.status(500).json({ error: 'Lỗi khi lấy tất cả đơn hàng', details: error.message });

@@ -68,6 +68,26 @@ router.delete('/:id', authenticate, requireAdmin, async (req, res) => {
     }
 });
 
+// Xóa hàng loạt sản phẩm (Cho Admin)
+router.post('/bulk-delete', authenticate, requireAdmin, async (req, res) => {
+    const { ids } = req.body; // Array of numbers
+    if (!ids || !Array.isArray(ids)) {
+        return res.status(400).json({ error: 'Danh sách ID không hợp lệ' });
+    }
+    try {
+        await prisma.product.deleteMany({
+            where: {
+                id: {
+                    in: ids.map(id => Number(id))
+                }
+            }
+        });
+        res.json({ message: 'Đã xóa hàng loạt sản phẩm thành công' });
+    } catch (error) {
+        res.status(500).json({ error: 'Lỗi khi xóa hàng loạt sản phẩm' });
+    }
+});
+
 // Thêm đánh giá cho sản phẩm
 router.post('/:id/reviews', authenticate, async (req, res) => {
     const { id } = req.params;

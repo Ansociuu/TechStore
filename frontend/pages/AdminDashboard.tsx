@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Page, Product, Order, User } from '../types';
 import { adminAPI, productAPI, orderAPI } from '../services/apiService';
+import OverviewTab from '../components/admin/OverviewTab';
+import ProductTab from '../components/admin/ProductTab';
+import OrderTab from '../components/admin/OrderTab';
+import UserTab from '../components/admin/UserTab';
+import VoucherTab from '../components/admin/VoucherTab';
+import ReviewTab from '../components/admin/ReviewTab';
+import { StatsSkeleton, TableSkeleton } from '../components/admin/Skeleton';
+import { Page, Product, Order, User, Voucher } from '../types';
 
 interface AdminDashboardProps {
   user: User | null;
@@ -8,18 +15,31 @@ interface AdminDashboardProps {
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onNavigate }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'users'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'users' | 'vouchers' | 'reviews'>('overview');
   const [stats, setStats] = useState<any>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState<any>(null);
+  const [orderPagination, setOrderPagination] = useState<any>(null);
+  const [userPagination, setUserPagination] = useState<any>(null);
+  const [voucherPagination, setVoucherPagination] = useState<any>(null);
+  const [reviewPagination, setReviewPagination] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [orderPage, setOrderPage] = useState(1);
+  const [userPage, setUserPage] = useState(1);
+  const [voucherPage, setVoucherPage] = useState(1);
+  const [reviewPage, setReviewPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchUserTerm, setSearchUserTerm] = useState('');
   const [searchOrderTerm, setSearchOrderTerm] = useState('');
+  const [searchVoucherTerm, setSearchVoucherTerm] = useState('');
+  const [searchReviewTerm, setSearchReviewTerm] = useState('');
+  const [ratingFilter, setRatingFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [pagination, setPagination] = useState<any>(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isOrderDetailOpen, setIsOrderDetailOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -37,6 +57,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onNavigate }) => 
     stock: 0
   });
 
+  // States for Voucher Modal
+  const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
+  const [editingVoucher, setEditingVoucher] = useState<Voucher | null>(null);
+  const [voucherFormData, setVoucherFormData] = useState({
+    code: '',
+    discount: 0,
+    type: 'percentage' as 'percentage' | 'fixed',
+    minOrder: 0,
+    maxDiscount: 0,
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    usageLimit: 0,
+    isActive: true
+  });
+
   useEffect(() => {
     if (user?.role !== 'admin') {
       onNavigate(Page.HOME);
@@ -48,17 +83,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onNavigate }) => 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [statsData, productsData, ordersData, usersData] = await Promise.all([
+      const [statsData, productsData, ordersData, usersData, vouchersData, reviewsData] = await Promise.all([
         adminAPI.getStats(),
         productAPI.getAll({ page: currentPage, limit: 10, search: searchTerm }),
-        orderAPI.getAllAdmin(),
-        adminAPI.getUsers()
+        orderAPI.getAllAdmin({ page: orderPage, limit: 10 }),
+        adminAPI.getUsers({ page: userPage, limit: 10 }),
+        adminAPI.getVouchers({ page: voucherPage, limit: 10, search: searchVoucherTerm }),
+        adminAPI.getReviews({
+          page: reviewPage,
+          limit: 10,
+          search: searchReviewTerm,
+          rating: ratingFilter === 'all' ? undefined : Number(ratingFilter)
+        })
       ]);
       setStats(statsData);
       setProducts(productsData.products);
       setPagination(productsData.pagination);
-      setOrders(ordersData);
-      setUsers(usersData);
+      setOrders(ordersData.orders);
+      setOrderPagination(ordersData.pagination);
+      setUsers(usersData.users);
+      setUserPagination(usersData.pagination);
+      setVouchers(vouchersData.vouchers);
+      setVoucherPagination(vouchersData.pagination);
+      setReviews(reviewsData.reviews);
+      setReviewPagination(reviewsData.pagination);
     } catch (error) {
       console.error('Failed to fetch admin data:', error);
     } finally {
@@ -68,7 +116,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onNavigate }) => 
 
   useEffect(() => {
     fetchData();
-  }, [currentPage, searchTerm]);
+  }, [currentPage, orderPage, userPage, voucherPage, reviewPage, searchTerm, searchVoucherTerm, searchReviewTerm, ratingFilter]);
 
   const handleOpenModal = (product: Product | null = null) => {
     if (product) {
@@ -147,6 +195,99 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onNavigate }) => 
     }
   };
 
+  const handleOpenVoucherModal = (voucher: Voucher | null = null) => {
+    if (voucher) {
+      setEditingVoucher(voucher);
+      setVoucherFormData({
+        code: voucher.code,
+        discount: voucher.discount,
+        type: voucher.type,
+        minOrder: voucher.minOrder || 0,
+        maxDiscount: voucher.maxDiscount || 0,
+        startDate: new Date(voucher.startDate).toISOString().split('T')[0],
+        endDate: new Date(voucher.endDate).toISOString().split('T')[0],
+        usageLimit: voucher.usageLimit || 0,
+        isActive: voucher.isActive
+      });
+    } else {
+      setEditingVoucher(null);
+      setVoucherFormData({
+        code: '',
+        discount: 0,
+        type: 'percentage',
+        minOrder: 0,
+        maxDiscount: 0,
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        usageLimit: 0,
+        isActive: true
+      });
+    }
+    setIsVoucherModalOpen(true);
+  };
+
+  const handleVoucherSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingVoucher) {
+        await adminAPI.updateVoucher(editingVoucher.id, voucherFormData);
+        alert('Cập nhật voucher thành công');
+      } else {
+        await adminAPI.createVoucher(voucherFormData);
+        alert('Thêm voucher thành công');
+      }
+      setIsVoucherModalOpen(false);
+      fetchData();
+    } catch (error) {
+      alert('Lỗi khi lưu voucher');
+    }
+  };
+
+  const handleDeleteVoucher = async (id: number) => {
+    try {
+      await adminAPI.deleteVoucher(id);
+      fetchData();
+    } catch (error) {
+      alert('Xóa voucher thất bại');
+    }
+  };
+
+  const handleToggleVoucherActive = async (id: number, isActive: boolean) => {
+    try {
+      await adminAPI.updateVoucher(id, { isActive });
+      setVouchers(vouchers.map(v => v.id === id ? { ...v, isActive } : v));
+    } catch (error) {
+      alert('Cập nhật trạng thái thất bại');
+    }
+  };
+
+  const handleBulkDeleteVouchers = async (ids: number[]) => {
+    try {
+      await adminAPI.bulkDeleteVouchers(ids);
+      fetchData();
+    } catch (error) {
+      alert('Xóa hàng loạt voucher thất bại');
+    }
+  };
+
+  const handleDeleteReview = async (id: number) => {
+    try {
+      await adminAPI.deleteReview(id);
+      fetchData();
+    } catch (error) {
+      alert('Xóa đánh giá thất bại');
+    }
+  };
+
+  const handleBulkDeleteReviews = async (ids: number[]) => {
+    try {
+      await adminAPI.bulkDeleteReviews(ids);
+      fetchData();
+    } catch (error) {
+      alert('Xóa hàng loạt đánh giá thất bại');
+    }
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -163,6 +304,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onNavigate }) => 
   };
 
   const handleDeleteUser = async (userId: number) => {
+    if (userId === user?.id) {
+      alert('Bạn không thể xóa chính mình');
+      return;
+    }
     if (window.confirm('Bạn có chắc chắn muốn xóa người dùng này?')) {
       try {
         await adminAPI.deleteUser(userId);
@@ -173,8 +318,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onNavigate }) => 
     }
   };
 
+  const handleBulkDeleteUsers = async (ids: number[]) => {
+    // Lọc ra các ID không phải là admin hiện tại (tự bảo vệ)
+    const safeIds = ids.filter(id => id !== user?.id);
+
+    if (safeIds.length === 0) {
+      alert('Không có người dùng hợp lệ để xóa');
+      return;
+    }
+
+    try {
+      await adminAPI.bulkDeleteUsers(safeIds);
+      setUsers(users.filter(u => !safeIds.includes(u.id)));
+      if (safeIds.length < ids.length) {
+        alert(`Đã xóa ${safeIds.length} người dùng. Không thể xóa chính bạn.`);
+      }
+    } catch (error) {
+      alert('Xóa hàng loạt thất bại');
+    }
+  };
+
   // Helper to draw SVG Chart
-  const RenderChart = ({ data }: { data: any[] }) => {
+  const RenderChart = (data: any[]) => {
     if (!data || data.length === 0) return null;
     const maxVal = Math.max(...data.map(d => d.count), 5);
     const height = 150;
@@ -278,7 +443,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onNavigate }) => 
           { id: 'overview', label: 'Tổng quan', icon: 'dashboard' },
           { id: 'products', label: 'Sản phẩm', icon: 'inventory_2' },
           { id: 'orders', label: 'Đơn hàng', icon: 'shopping_bag' },
-          { id: 'users', label: 'Người dùng', icon: 'group' }
+          { id: 'users', label: 'Người dùng', icon: 'group' },
+          { id: 'vouchers', label: 'Vouchers', icon: 'confirmation_number' },
+          { id: 'reviews', label: 'Đánh giá', icon: 'reviews' }
         ].map(tab => (
           <button
             key={tab.id}
@@ -294,427 +461,121 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onNavigate }) => 
         ))}
       </div>
 
-      {activeTab === 'overview' && stats && (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { label: 'Doanh thu', value: `${(stats.totalRevenue || 0).toLocaleString('vi-VN')}₫`, icon: 'payments', color: 'text-green-500', bg: 'bg-green-100 dark:bg-green-900/30' },
-              { label: 'Tổng đơn hàng', value: stats.totalOrders, icon: 'shopping_cart', color: 'text-blue-500', bg: 'bg-blue-100 dark:bg-blue-900/30' },
-              { label: 'Tổng tồn kho', value: stats.totalStock, icon: 'inventory', color: 'text-purple-500', bg: 'bg-purple-100 dark:bg-purple-900/30' },
-              { label: 'Người dùng', value: stats.totalUsers, icon: 'group', color: 'text-orange-500', bg: 'bg-orange-100 dark:bg-orange-900/30' },
-            ].map((stat, idx) => (
-              <div key={idx} className="bg-white dark:bg-surface-dark p-6 rounded-[2rem] border border-slate-100 dark:border-surface-border shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-                <div className={`size-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center`}>
-                  <span className="material-symbols-outlined">{stat.icon}</span>
-                </div>
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{stat.label}</p>
-                  <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{stat.value}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-8">
-              <RenderChart data={stats.salesByDay} />
-
-              <div className="bg-white dark:bg-surface-dark rounded-[2rem] border border-slate-100 dark:border-surface-border p-8 shadow-sm">
-                <h3 className="text-lg font-black font-display mb-6">Đơn hàng gần đây</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-100 dark:border-surface-border">
-                        <th className="pb-4 font-black text-slate-400 uppercase tracking-widest text-[10px]">Mã đơn</th>
-                        <th className="pb-4 font-black text-slate-400 uppercase tracking-widest text-[10px]">Khách hàng</th>
-                        <th className="pb-4 font-black text-slate-400 uppercase tracking-widest text-[10px]">Tổng tiền</th>
-                        <th className="pb-4 font-black text-slate-400 uppercase tracking-widest text-[10px]">Trạng thái</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-surface-border">
-                      {stats.recentOrders.map((order: any) => (
-                        <tr key={order.id} className="group hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                          <td className="py-4 font-bold text-slate-900 dark:text-white">#{order.id}</td>
-                          <td className="py-4 text-slate-600 dark:text-slate-300">{order.user.name}</td>
-                          <td className="py-4 font-black text-primary">{order.total.toLocaleString('vi-VN')}₫</td>
-                          <td className="py-4">
-                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${order.status === 'delivered' ? 'bg-green-100 text-green-600' :
-                              order.status === 'pending' ? 'bg-yellow-100 text-yellow-600' :
-                                order.status === 'shipping' || order.status === 'shipped' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'
-                              }`}>
-                              {order.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-8">
-              <div className="bg-white dark:bg-surface-dark rounded-[2rem] border border-slate-100 dark:border-surface-border p-8 shadow-sm">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-black font-display">Sắp hết hàng</h3>
-                  <span className="material-symbols-outlined text-orange-500 animate-pulse">warning</span>
-                </div>
-                <div className="space-y-4">
-                  {stats.lowStockProducts.length > 0 ? (
-                    stats.lowStockProducts.map((p: any) => (
-                      <div key={p.id} className="flex items-center gap-4 p-3 rounded-2xl bg-slate-50 dark:bg-white/5 border border-transparent hover:border-slate-100 dark:hover:border-white/10 transition-all">
-                        <div className="size-10 rounded-lg bg-white dark:bg-surface-dark p-1 flex-shrink-0">
-                          <img src={p.image} alt={p.name} className="size-full object-contain" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">{p.name}</h4>
-                          <p className={`text-[10px] font-black uppercase ${p.stock < 10 ? 'text-red-500' : 'text-orange-500'}`}>Còn {p.stock} sản phẩm</p>
-                        </div>
-                        <button onClick={() => handleOpenModal(p)} className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-all">
-                          <span className="material-symbols-outlined !text-[16px]">add_box</span>
-                        </button>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-xs text-slate-500 text-center py-4 italic">Kho hàng vẫn đầy đủ</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-primary to-blue-600 rounded-[2rem] p-8 text-white shadow-xl shadow-primary/20">
-                <h3 className="text-lg font-black font-display mb-2">Đăng tin khuyến mãi</h3>
-                <p className="text-xs text-white/70 mb-6 leading-relaxed">Tiếp cận khách hàng mục tiêu bằng những gợi ý sản phẩm phù hợp được hỗ trợ bởi AI.</p>
-                <button className="w-full py-4 bg-white/20 hover:bg-white/30 rounded-2xl font-black uppercase tracking-widest text-[10px] backdrop-blur-md transition-all border border-white/20">
-                  Tạo chiến dịch AI
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {activeTab === 'overview' && (loading ? <StatsSkeleton /> : stats && (
+        <OverviewTab
+          stats={stats}
+          onOpenModal={handleOpenModal}
+        />
+      ))}
 
       {/* Products Tab Content */}
-      {activeTab === 'products' && (
-        <div className="bg-white dark:bg-surface-dark rounded-[2rem] border border-slate-100 dark:border-surface-border p-8 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-500">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-            <div className="space-y-1">
-              <h3 className="text-lg font-black font-display">Quản lý sản phẩm</h3>
-              <p className="text-xs text-slate-500">Tìm kiếm và quản lý kho hàng của bạn</p>
-            </div>
-            <div className="flex items-center gap-3 w-full md:w-auto">
-              <div className="relative flex-1 md:w-64">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 !text-[20px]">search</span>
-                <input
-                  type="text"
-                  placeholder="Tìm tên sản phẩm..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-surface-border focus:border-primary outline-none transition-all text-sm"
-                />
-              </div>
-              <button
-                onClick={() => handleOpenModal()}
-                className="px-5 py-2.5 bg-primary text-white rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 active:scale-95 whitespace-nowrap"
-              >
-                <span className="material-symbols-outlined !text-[18px]">add</span>
-                Thêm mới
-              </button>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto -mx-8 px-8">
-            <table className="w-full text-left text-sm border-separate border-spacing-y-3">
-              <thead>
-                <tr className="text-slate-400 uppercase tracking-widest text-[10px] font-black">
-                  <th className="px-4 pb-2">Sản phẩm</th>
-                  <th className="px-4 pb-2">Danh mục</th>
-                  <th className="px-4 pb-2">Giá bán</th>
-                  <th className="px-4 pb-2">Tồn kho</th>
-                  <th className="px-4 pb-2 text-right">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products
-                  .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
-                  .map(product => (
-                    <tr key={product.id} className="group bg-slate-50/50 dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white-[0.08] transition-all">
-                      <td className="px-4 py-3 rounded-l-2xl">
-                        <div className="flex items-center gap-4">
-                          <div className="size-12 rounded-xl bg-white dark:bg-surface-dark p-2 flex-shrink-0 border border-slate-100 dark:border-surface-border">
-                            <img src={product.image} alt={product.name} className="size-full object-contain" />
-                          </div>
-                          <div className="min-w-0">
-                            <h4 className="font-bold text-slate-900 dark:text-white truncate max-w-[200px]">{product.name}</h4>
-                            <p className="text-[10px] text-slate-500 font-medium">ID: #{product.id.toString().slice(-4)}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 text-[10px] font-bold">
-                          {product.category}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 font-black text-primary">
-                        {product.price.toLocaleString('vi-VN')}₫
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 h-1.5 rounded-full bg-slate-100 dark:bg-white/10 overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${product.stock && product.stock < 10 ? 'bg-orange-500' : 'bg-green-500'}`}
-                              style={{ width: `${Math.min((product.stock || 0) * 2, 100)}%` }}
-                            ></div>
-                          </div>
-                          <span className={`text-xs font-bold ${product.stock && product.stock < 10 ? 'text-orange-500' : 'text-slate-600 dark:text-slate-400'}`}>
-                            {product.stock || 0}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 rounded-r-2xl text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => handleOpenModal(product)}
-                            className="size-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all"
-                            title="Sửa"
-                          >
-                            <span className="material-symbols-outlined !text-[18px]">edit</span>
-                          </button>
-                          <button
-                            onClick={() => handleDeleteProduct(product.id)}
-                            className="size-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"
-                            title="Xóa"
-                          >
-                            <span className="material-symbols-outlined !text-[18px]">delete</span>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Phân trang sản phẩm */}
-          {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6 pt-6 border-t border-slate-100 dark:border-surface-border">
-              <p className="text-xs text-slate-500">
-                Hiển thị trang {pagination.page} trên tổng {pagination.totalPages} trang ({pagination.totalProducts} sản phẩm)
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="size-8 rounded-lg flex items-center justify-center bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-surface-border hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                >
-                  <span className="material-symbols-outlined !text-[18px]">chevron_left</span>
-                </button>
-
-                {[...Array(pagination.totalPages)].map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setCurrentPage(i + 1)}
-                    className={`size-8 rounded-lg text-xs font-bold transition-all ${currentPage === i + 1
-                        ? 'bg-primary text-white shadow-md shadow-primary/20'
-                        : 'bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-surface-border hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300'
-                      }`}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, pagination.totalPages))}
-                  disabled={currentPage === pagination.totalPages}
-                  className="size-8 rounded-lg flex items-center justify-center bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-surface-border hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                >
-                  <span className="material-symbols-outlined !text-[18px]">chevron_right</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      {activeTab === 'products' && (loading ? <TableSkeleton rows={8} /> : (
+        <ProductTab
+          products={products}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          onOpenModal={handleOpenModal}
+          onDeleteProduct={handleDeleteProduct}
+          onBulkDelete={async (ids) => {
+            try {
+              await productAPI.bulkDelete(ids.map(id => Number(id)));
+              setProducts(products.filter(p => !ids.includes(p.id.toString())));
+            } catch (err) {
+              alert('Xóa hàng loạt thất bại');
+            }
+          }}
+          pagination={pagination}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+        />
+      ))}
 
       {/* Users Tab Content */}
       {activeTab === 'users' && (
-        <div className="bg-white dark:bg-surface-dark rounded-[2rem] border border-slate-100 dark:border-surface-border p-8 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-500">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-            <div className="space-y-1">
-              <h3 className="text-lg font-black font-display">Quản lý người dùng</h3>
-              <p className="text-xs text-slate-500">Xem danh sách và phân quyền thành viên</p>
-            </div>
-            <div className="relative w-full md:w-64">
-              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 !text-[20px]">search</span>
-              <input
-                type="text"
-                placeholder="Tìm tên hoặc email..."
-                value={searchUserTerm}
-                onChange={(e) => setSearchUserTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-surface-border focus:border-primary outline-none transition-all text-sm"
-              />
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 dark:border-surface-border">
-                  <th className="pb-4 font-black text-slate-400 uppercase tracking-widest text-[10px]">Người dùng</th>
-                  <th className="pb-4 font-black text-slate-400 uppercase tracking-widest text-[10px]">Email</th>
-                  <th className="pb-4 font-black text-slate-400 uppercase tracking-widest text-[10px]">Vai trò</th>
-                  <th className="pb-4 font-black text-slate-400 uppercase tracking-widest text-[10px]">Ngày tạo</th>
-                  <th className="pb-4 font-black text-slate-400 uppercase tracking-widest text-[10px] text-right">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-surface-border">
-                {users
-                  .filter(u => u.name.toLowerCase().includes(searchUserTerm.toLowerCase()) || u.email.toLowerCase().includes(searchUserTerm.toLowerCase()))
-                  .map((u) => (
-                    <tr key={u.id} className="group hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                      <td className="py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs uppercase">
-                            {u.name.charAt(0)}
-                          </div>
-                          <span className="font-bold text-slate-900 dark:text-white">{u.name}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 text-slate-500">{u.email}</td>
-                      <td className="py-4">
-                        <select
-                          value={u.role}
-                          onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
-                          className={`px-3 py-1 rounded-lg text-xs font-black uppercase tracking-widest border border-transparent outline-none cursor-pointer transition-all ${u.role === 'admin' ? 'bg-purple-100 text-purple-600' : 'bg-slate-100 text-slate-600'
-                            }`}
-                        >
-                          <option value="user">User</option>
-                          <option value="admin">Admin</option>
-                        </select>
-                      </td>
-                      <td className="py-4 text-slate-500 text-xs">
-                        {new Date(u.createdAt || '').toLocaleDateString('vi-VN')}
-                      </td>
-                      <td className="py-4 text-right">
-                        <button
-                          onClick={() => handleDeleteUser(u.id)}
-                          disabled={u.id === user?.id}
-                          className={`size-8 rounded-lg flex items-center justify-center transition-all ${u.id === user?.id ? 'opacity-20 cursor-not-allowed text-slate-400' : 'text-red-500 hover:bg-red-500 hover:text-white'
-                            }`}
-                        >
-                          <span className="material-symbols-outlined !text-[18px]">delete</span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        loading ? (
+          <TableSkeleton />
+        ) : (
+          <UserTab
+            users={users}
+            currentUser={user}
+            searchUserTerm={searchUserTerm}
+            setSearchUserTerm={setSearchUserTerm}
+            onUpdateUserRole={handleUpdateUserRole}
+            onDeleteUser={handleDeleteUser}
+            onBulkDeleteUsers={handleBulkDeleteUsers}
+            pagination={userPagination}
+            currentPage={userPage}
+            setCurrentPage={setUserPage}
+          />
+        )
       )}
 
-      {/* Orders Tab Content */}
-      {activeTab === 'orders' && (
-        <div className="bg-white dark:bg-surface-dark rounded-[2rem] border border-slate-100 dark:border-surface-border p-8 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-500">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-            <div className="space-y-1">
-              <h3 className="text-lg font-black font-display">Tất cả đơn hàng</h3>
-              <p className="text-xs text-slate-500">Theo dõi và cập nhật trạng thái đơn hàng</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-              <div className="relative flex-1 md:w-64">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 !text-[20px]">search</span>
-                <input
-                  type="text"
-                  placeholder="Mã đơn hoặc khách hàng..."
-                  value={searchOrderTerm}
-                  onChange={(e) => setSearchOrderTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-surface-border focus:border-primary outline-none transition-all text-sm"
-                />
-              </div>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-surface-border focus:border-primary outline-none text-xs font-bold"
-              >
-                <option value="all">Tất cả trạng thái</option>
-                <option value="pending">Chờ xử lý</option>
-                <option value="processing">Đang xử lý</option>
-                <option value="shipped">Đang giao</option>
-                <option value="delivered">Đã giao</option>
-                <option value="cancelled">Đã hủy</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm border-separate border-spacing-y-2">
-              <thead>
-                <tr className="text-slate-400 uppercase tracking-widest text-[10px] font-black">
-                  <th className="px-4 pb-2">Mã đơn</th>
-                  <th className="px-4 pb-2">Khách hàng</th>
-                  <th className="px-4 pb-2">Ngày đặt</th>
-                  <th className="px-4 pb-2">Tổng tiền</th>
-                  <th className="px-4 pb-2">Trạng thái</th>
-                  <th className="px-4 pb-2 text-right">Hành động</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders
-                  .filter(o => {
-                    const matchesSearch = o.id.toString().includes(searchOrderTerm) || (o as any).user?.name.toLowerCase().includes(searchOrderTerm.toLowerCase());
-                    const matchesStatus = statusFilter === 'all' || o.status === statusFilter;
-                    return matchesSearch && matchesStatus;
-                  })
-                  .map((order) => (
-                    <tr key={order.id} className="group bg-slate-50/30 dark:bg-white-[0.02] hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
-                      <td className="px-4 py-4 rounded-l-2xl font-bold text-slate-900 dark:text-white">#{order.id}</td>
-                      <td className="px-4 py-4 text-slate-600 dark:text-slate-300">{order.user?.name || 'Guest'}</td>
-                      <td className="px-4 py-4 text-slate-500 text-xs">{new Date(order.date || order.createdAt || '').toLocaleDateString('vi-VN')}</td>
-                      <td className="px-4 py-4 font-black text-primary">{order.total.toLocaleString('vi-VN')}₫</td>
-                      <td className="px-4 py-4">
-                        <select
-                          value={order.status}
-                          onChange={async (e) => {
-                            const newStatus = e.target.value;
-                            try {
-                              const numericId = typeof order.id === 'string' ? parseInt(order.id.replace(/\D/g, '')) : order.id;
-                              await orderAPI.updateStatus(numericId, newStatus);
-                              setOrders(orders.map(o => o.id === order.id ? { ...o, status: newStatus } : o));
-                            } catch (err) {
-                              alert('Cập nhật trạng thái thất bại');
-                            }
-                          }}
-                          className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border border-slate-200 dark:border-surface-border outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer transition-all ${order.status === 'delivered' ? 'bg-green-100 text-green-600' :
-                            order.status === 'pending' ? 'bg-yellow-100 text-yellow-600' :
-                              order.status === 'shipped' || order.status === 'shipping' ? 'bg-blue-100 text-blue-600' :
-                                order.status === 'cancelled' ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-600'
-                            }`}
-                        >
-                          <option value="pending">Chờ xử lý</option>
-                          <option value="processing">Đang xử lý</option>
-                          <option value="shipped">Đang giao</option>
-                          <option value="delivered">Đã giao</option>
-                          <option value="cancelled">Đã hủy</option>
-                        </select>
-                      </td>
-                      <td className="px-4 py-4 rounded-r-2xl text-right">
-                        <button
-                          onClick={() => {
-                            setSelectedOrder(order);
-                            setIsOrderDetailOpen(true);
-                          }}
-                          className="px-4 py-2 rounded-xl bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all"
-                        >
-                          Chi tiết
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+      {activeTab === 'vouchers' && (
+        loading ? (
+          <TableSkeleton />
+        ) : (
+          <VoucherTab
+            vouchers={vouchers}
+            searchTerm={searchVoucherTerm}
+            setSearchTerm={setSearchVoucherTerm}
+            onAddVoucher={() => handleOpenVoucherModal()}
+            onEditVoucher={handleOpenVoucherModal}
+            onDeleteVoucher={handleDeleteVoucher}
+            onBulkDelete={handleBulkDeleteVouchers}
+            onToggleActive={handleToggleVoucherActive}
+            pagination={voucherPagination}
+            currentPage={voucherPage}
+            setCurrentPage={setVoucherPage}
+          />
+        )
       )}
+
+      {activeTab === 'reviews' && (
+        loading ? (
+          <TableSkeleton />
+        ) : (
+          <ReviewTab
+            reviews={reviews}
+            searchTerm={searchReviewTerm}
+            setSearchTerm={setSearchReviewTerm}
+            ratingFilter={ratingFilter}
+            setRatingFilter={setRatingFilter}
+            onDeleteReview={handleDeleteReview}
+            onBulkDelete={handleBulkDeleteReviews}
+            pagination={reviewPagination}
+            currentPage={reviewPage}
+            setCurrentPage={setReviewPage}
+          />
+        )
+      )}
+
+      {activeTab === 'orders' && (loading ? <TableSkeleton rows={8} /> : (
+        <OrderTab
+          orders={orders}
+          searchOrderTerm={searchOrderTerm}
+          setSearchOrderTerm={setSearchOrderTerm}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          onUpdateStatus={async (id, status) => {
+            try {
+              await orderAPI.updateStatus(id, status);
+              setOrders(orders.map(o => {
+                const oId = typeof o.id === 'string' ? parseInt(o.id.replace(/\D/g, '')) : o.id;
+                return oId === id ? { ...o, status } : o;
+              }));
+            } catch (err) {
+              alert('Cập nhật trạng thái thất bại');
+            }
+          }}
+          onOpenDetail={(order) => {
+            setSelectedOrder(order);
+            setIsOrderDetailOpen(true);
+          }}
+          pagination={orderPagination}
+          currentPage={orderPage}
+          setCurrentPage={setOrderPage}
+        />
+      ))}
 
       {/* Order Detail Modal */}
       {isOrderDetailOpen && selectedOrder && (
@@ -949,6 +810,128 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onNavigate }) => 
                   className="flex-1 py-4 rounded-2xl bg-primary text-white font-bold hover:bg-primary-dark shadow-lg shadow-primary/25 transition-all active:scale-95 text-sm"
                 >
                   {editingProduct ? 'Cập nhật sản phẩm' : 'Thêm mới sản phẩm'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Voucher Modal */}
+      {isVoucherModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsVoucherModalOpen(false)} />
+          <div className="relative w-full max-w-2xl bg-white dark:bg-surface-dark rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-surface-border overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-8 border-b border-slate-50 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/5">
+              <div>
+                <h3 className="text-xl font-black font-display">{editingVoucher ? 'Cập nhật Voucher' : 'Thêm Voucher mới'}</h3>
+                <p className="text-xs text-slate-500 mt-1">Thiết lập chương trình giảm giá</p>
+              </div>
+              <button onClick={() => setIsVoucherModalOpen(false)} className="size-10 rounded-full hover:bg-slate-200 dark:hover:bg-white/10 flex items-center justify-center transition-all">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleVoucherSubmit} className="p-8 space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Mã Voucher</label>
+                  <input
+                    required
+                    type="text"
+                    value={voucherFormData.code}
+                    onChange={(e) => setVoucherFormData({ ...voucherFormData, code: e.target.value.toUpperCase() })}
+                    placeholder="VD: TECHSTORE50"
+                    className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-surface-border focus:border-primary outline-none transition-all font-bold"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Loại giảm giá</label>
+                  <select
+                    value={voucherFormData.type}
+                    onChange={(e) => setVoucherFormData({ ...voucherFormData, type: e.target.value as any })}
+                    className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-surface-border focus:border-primary outline-none transition-all font-bold"
+                  >
+                    <option value="percentage">Phần trăm (%)</option>
+                    <option value="fixed">Số tiền cố định (₫)</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">
+                    {voucherFormData.type === 'percentage' ? 'Phần trăm giảm' : 'Số tiền giảm'}
+                  </label>
+                  <input
+                    required
+                    type="number"
+                    value={voucherFormData.discount}
+                    onChange={(e) => setVoucherFormData({ ...voucherFormData, discount: Number(e.target.value) })}
+                    className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-surface-border focus:border-primary outline-none transition-all font-bold"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Số lượng tối đa</label>
+                  <input
+                    type="number"
+                    value={voucherFormData.usageLimit}
+                    onChange={(e) => setVoucherFormData({ ...voucherFormData, usageLimit: Number(e.target.value) })}
+                    placeholder="0 = Không giới hạn"
+                    className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-surface-border focus:border-primary outline-none transition-all font-bold"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Ngày bắt đầu</label>
+                  <input
+                    required
+                    type="date"
+                    value={voucherFormData.startDate}
+                    onChange={(e) => setVoucherFormData({ ...voucherFormData, startDate: e.target.value })}
+                    className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-surface-border focus:border-primary outline-none transition-all font-bold"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Ngày kết thúc</label>
+                  <input
+                    required
+                    type="date"
+                    value={voucherFormData.endDate}
+                    onChange={(e) => setVoucherFormData({ ...voucherFormData, endDate: e.target.value })}
+                    className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-surface-border focus:border-primary outline-none transition-all font-bold"
+                  />
+                </div>
+                {voucherFormData.type === 'percentage' && (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Giảm tối đa (₫)</label>
+                    <input
+                      type="number"
+                      value={voucherFormData.maxDiscount}
+                      onChange={(e) => setVoucherFormData({ ...voucherFormData, maxDiscount: Number(e.target.value) })}
+                      className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-surface-border focus:border-primary outline-none transition-all font-bold"
+                    />
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Đơn hàng tối thiểu (₫)</label>
+                  <input
+                    type="number"
+                    value={voucherFormData.minOrder}
+                    onChange={(e) => setVoucherFormData({ ...voucherFormData, minOrder: Number(e.target.value) })}
+                    className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-surface-border focus:border-primary outline-none transition-all font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsVoucherModalOpen(false)}
+                  className="px-8 py-3.5 rounded-2xl bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-400 font-black uppercase tracking-widest text-[10px] hover:bg-slate-100 dark:hover:bg-white/10 transition-all border border-slate-100 dark:border-surface-border"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-10 py-3.5 rounded-2xl bg-primary text-white font-black uppercase tracking-widest text-[10px] hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 active:scale-95"
+                >
+                  {editingVoucher ? 'Cập nhật' : 'Thêm Voucher'}
                 </button>
               </div>
             </form>
