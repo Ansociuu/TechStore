@@ -13,7 +13,7 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
             include: { product: true },
             orderBy: { createdAt: 'desc' }
         });
-        res.json(wishlist.map(item => item.product));
+        res.json(wishlist.map((item) => item.product));
     } catch (error) {
         console.error('Failed to get wishlist:', error);
         res.status(500).json({ error: 'Lỗi server' });
