@@ -194,6 +194,20 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
     }
   };
 
+  const handleCancelOrder = async (orderId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?')) return;
+    try {
+      const numericId = parseInt(orderId.replace(/\D/g, ''));
+      await orderAPI.cancel(numericId);
+      setOrders(orders.map(o => o.id === orderId ? { ...o, status: 'cancelled' } : o));
+      alert('Hủy đơn hàng thành công!');
+    } catch (error: any) {
+      console.error('Failed to cancel order:', error);
+      alert(error.response?.data?.error || 'Có lỗi xảy ra khi hủy đơn hàng');
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -609,12 +623,22 @@ export default function Profile({ user, onNavigate, onProductSelect, onOrderSele
                             </span>
                           )}
                         </div>
-                        <button
-                          onClick={() => onOrderSelect(order)}
-                          className="text-[10px] font-black uppercase text-primary tracking-widest hover:translate-x-1 transition-transform flex items-center gap-2 p-2 -m-2 rounded-xl hover:bg-primary/5"
-                        >
-                          Xem chi tiết <span className="material-symbols-outlined !text-[16px]">arrow_forward</span>
-                        </button>
+                        <div className="flex items-center gap-4">
+                          {order.status === 'pending' && (
+                            <button
+                              onClick={(e) => handleCancelOrder(order.id, e)}
+                              className="text-[10px] font-black uppercase text-red-500 tracking-widest hover:bg-red-50 dark:hover:bg-red-500/10 p-2 rounded-xl transition-colors"
+                            >
+                              Hủy đơn
+                            </button>
+                          )}
+                          <button
+                            onClick={() => onOrderSelect(order)}
+                            className="text-[10px] font-black uppercase text-primary tracking-widest hover:translate-x-1 transition-transform flex items-center gap-2 p-2 -m-2 rounded-xl hover:bg-primary/5"
+                          >
+                            Xem chi tiết <span className="material-symbols-outlined !text-[16px]">arrow_forward</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
