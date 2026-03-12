@@ -3,6 +3,7 @@ import { authenticate, AuthRequest } from '../middleware/auth.middleware';
 import {
     getUserBasedRecommendations,
     getItemBasedRecommendations,
+    getCategoryRecommendations,
     getHybridRecommendations
 } from '../services/recommendation.service';
 
@@ -34,7 +35,20 @@ router.get('/item/:productId', async (req, res) => {
     }
 });
 
-// Hybrid: kết hợp User + Item CF
+// Gợi ý theo danh mục
+router.get('/category/:productId', async (req, res) => {
+    try {
+        const productId = parseInt(req.params.productId);
+        const topK = parseInt(req.query.limit as string) || 6;
+        const recommendations = await getCategoryRecommendations(productId, topK);
+        res.json({ recommendations, method: 'category-based' });
+    } catch (error) {
+        console.error('Lỗi recommendation category-based:', error);
+        res.status(500).json({ error: 'Lỗi server' });
+    }
+});
+
+// Hybrid: kết hợp User + Item CF + Category-based (từ giỏ hàng)
 router.get('/hybrid', authenticate, async (req: AuthRequest, res) => {
     try {
         const userId = req.userId!;

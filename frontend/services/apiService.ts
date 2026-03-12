@@ -299,6 +299,10 @@ export const recommendationAPI = {
         const response = await apiClient.get(`/recommendations/item/${productId}?limit=${limit}`);
         return response.data;
     },
+    forCategory: async (productId: string | number, limit: number = 6) => {
+        const response = await apiClient.get(`/recommendations/category/${productId}?limit=${limit}`);
+        return response.data;
+    },
     hybrid: async (limit: number = 8) => {
         const response = await apiClient.get(`/recommendations/hybrid?limit=${limit}`);
         return response.data;

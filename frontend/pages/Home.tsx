@@ -284,7 +284,7 @@ const Home: React.FC<HomeProps> = ({ products, onProductSelect, onAddToCart, onB
             className={`flex gap-6 overflow-x-auto snap-x snap-mandatory no-scrollbar px-2 pb-8 ${isDragging ? 'cursor-grabbing select-none snap-none' : 'cursor-grab'}`}
           >
             {cfRecommendations.map(product => (
-              <div key={product.id} className="min-w-[280px] md:min-w-[320px] snap-start flex-shrink-0">
+              <div key={product.id} className="w-[280px] md:w-[320px] snap-start flex-shrink-0">
                 <ProductCard
                   product={product}
                   onSelect={onProductSelect}

@@ -13,7 +13,7 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect, onAddToCart, onBuyNow, isFavorite = false, onToggleWishlist }) => {
   return (
-    <div className="group relative bg-white dark:bg-surface-dark border border-slate-100 dark:border-surface-border rounded-2xl overflow-hidden hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500 hover:-translate-y-1">
+    <div className="group relative w-full h-full bg-white dark:bg-surface-dark border border-slate-100 dark:border-surface-border rounded-2xl overflow-hidden hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500 hover:-translate-y-1 flex flex-col">
       {/* Badges */}
       <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
         {product.isNew && (
@@ -54,10 +54,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect, onAddToCar
       </div>
 
       {/* Content */}
-      <div className="p-4 flex flex-col gap-3">
+      <div className="p-4 flex flex-col gap-3 flex-grow">
         <div className="min-h-[44px]">
           <h3
-            className="text-base font-black text-slate-900 dark:text-white line-clamp-1 hover:text-primary cursor-pointer transition-colors font-display tracking-tight"
+            className="text-base font-black text-slate-900 dark:text-white line-clamp-2 hover:text-primary cursor-pointer transition-colors font-display tracking-tight"
             onClick={() => onSelect(product)}
           >
             {product.name}

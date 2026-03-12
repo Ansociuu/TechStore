@@ -78,28 +78,45 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const fetchUserContent = async () => {
+  const fetchCart = async () => {
     try {
-      // Fetch Cart
       const cartData = await cartAPI.get();
       const transformedCart = cartData.items.map((item: any) => ({
         ...item.product,
         id: String(item.product.id),
         quantity: item.quantity,
-        dbItemId: item.id // Store backend record ID for updates
+        dbItemId: item.id
       }));
       setCart(transformedCart);
+    } catch (error) {
+      console.error('Lỗi khi tải giỏ hàng:', error);
+    }
+  };
 
-      // Fetch Notifications
+  const fetchNotifications = async () => {
+    try {
       const notifs = await notificationAPI.getAll();
       setNotifications(notifs);
+    } catch (error) {
+      console.error('Lỗi khi tải thông báo:', error);
+    }
+  };
 
-      // Fetch Wishlist
+  const fetchWishlist = async () => {
+    try {
       const wishlist = await wishlistAPI.get();
       setWishlistIds(wishlist.map((p: any) => p.id));
     } catch (error) {
-      console.error('Lỗi khi tải dữ liệu người dùng:', error);
+      console.error('Lỗi khi tải danh sách yêu thích:', error);
     }
+  };
+
+  const fetchUserContent = async () => {
+    await Promise.all([
+      fetchCart(),
+      fetchNotifications(),
+      fetchWishlist()
+    ]);
   };
 
   const handleToggleWishlist = async (product: Product) => {
@@ -155,9 +172,11 @@ const App: React.FC = () => {
 
     try {
       await cartAPI.addItem(Number(product.id), quantity);
-      await fetchUserContent(); // Refresh from DB
-    } catch (error) {
+      await fetchCart(); // Chỉ refresh giỏ hàng cho nhanh
+    } catch (error: any) {
       console.error('Lỗi khi thêm vào giỏ hàng:', error);
+      const message = error.response?.data?.message || error.response?.data?.error || 'Không thể thêm sản phẩm vào giỏ hàng';
+      alert(message);
     }
   };
 
@@ -168,9 +187,11 @@ const App: React.FC = () => {
     try {
       const newQuantity = Math.max(1, item.quantity + delta);
       await cartAPI.updateItem(item.dbItemId, newQuantity);
-      await fetchUserContent();
-    } catch (error) {
+      await fetchCart();
+    } catch (error: any) {
       console.error('Lỗi khi cập nhật số lượng:', error);
+      const message = error.response?.data?.message || error.response?.data?.error || 'Không thể cập nhật số lượng';
+      alert(message);
     }
   };
 
@@ -180,9 +201,10 @@ const App: React.FC = () => {
 
     try {
       await cartAPI.removeItem(item.dbItemId);
-      await fetchUserContent();
+      await fetchCart();
     } catch (error) {
       console.error('Lỗi khi xóa khỏi giỏ hàng:', error);
+      alert('Không thể xóa sản phẩm khỏi giỏ hàng');
     }
   };
 

@@ -56,18 +56,13 @@ router.post('/items', authenticate, validate(cartItemSchema), async (req: AuthRe
             return res.status(404).json({ error: 'Không tìm thấy sản phẩm' });
         }
 
-        // Kiểm tra tồn kho
-        if (product.stock < quantity) {
-            return res.status(400).json({ error: 'Không đủ hàng trong kho' });
-        }
-
         // Lấy hoặc tạo giỏ hàng
         let cart = await prisma.cart.findUnique({ where: { userId } });
         if (!cart) {
             cart = await prisma.cart.create({ data: { userId } });
         }
 
-        // Kiểm tra sản phẩm đã có trong giỏ chưa
+        // Kiểm tra sản phẩm đã có trong giỏ chưa để tính tổng số lượng
         const existingItem = await prisma.cartItem.findUnique({
             where: {
                 cartId_productId: {
@@ -77,11 +72,21 @@ router.post('/items', authenticate, validate(cartItemSchema), async (req: AuthRe
             },
         });
 
+        const totalQuantityRequested = (existingItem?.quantity || 0) + quantity;
+
+        // Kiểm tra tồn kho chính xác (tổng trong giỏ + mới)
+        if (product.stock < totalQuantityRequested) {
+            return res.status(400).json({ 
+                error: 'Không đủ hàng trong kho', 
+                message: `Bạn hiện có ${existingItem?.quantity || 0} sản phẩm trong giỏ. Không thể thêm tiếp vì vượt quá tồn kho (${product.stock}).` 
+            });
+        }
+
         if (existingItem) {
             // Cập nhật số lượng
             const updatedItem = await prisma.cartItem.update({
                 where: { id: existingItem.id },
-                data: { quantity: existingItem.quantity + quantity },
+                data: { quantity: totalQuantityRequested },
                 include: { product: true },
             });
             res.json(updatedItem);

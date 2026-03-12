@@ -166,6 +166,27 @@ export async function getItemBasedRecommendations(productId: number, topK: numbe
 }
 
 /**
+ * Gợi ý sản phẩm cùng danh mục
+ * Lấy các sản phẩm có cùng category, sắp xếp theo rating giảm dần
+ */
+export async function getCategoryRecommendations(productId: number, topK: number = 5): Promise<any[]> {
+    const product = await prisma.product.findUnique({ where: { id: productId } });
+    if (!product) return [];
+
+    const recommendations = await prisma.product.findMany({
+        where: {
+            category: product.category,
+            id: { not: productId },
+            stock: { gt: 0 }
+        },
+        orderBy: { rating: 'desc' },
+        take: topK
+    });
+
+    return recommendations;
+}
+
+/**
  * Hybrid: kết hợp User-based + Item-based CF
  */
 export async function getHybridRecommendations(userId: number, topK: number = 8): Promise<any[]> {
@@ -173,34 +194,66 @@ export async function getHybridRecommendations(userId: number, topK: number = 8)
         getUserBasedRecommendations(userId, topK),
         prisma.cart.findUnique({
             where: { userId },
-            include: { items: { include: { product: true } } }
+            include: { 
+                items: { 
+                    include: { product: true },
+                    orderBy: { updatedAt: 'desc' }
+                } 
+            }
         })
     ]);
 
-    // Lấy item-based từ sản phẩm trong giỏ hàng
-    let itemBased: any[] = [];
-    if (cartItems?.items?.length) {
-        const itemPromises = cartItems.items.slice(0, 3).map(item =>
-            getItemBasedRecommendations(item.productId, 3)
-        );
-        const results = await Promise.all(itemPromises);
-        itemBased = results.flat();
-    }
-
-    // Kết hợp và loại bỏ trùng lặp
     const seen = new Set<number>();
     const combined: any[] = [];
+    const cartProductIds = new Set(cartItems?.items.map(i => i.productId) || []);
 
-    // Xen kẽ user-based và item-based
-    const maxLen = Math.max(userBased.length, itemBased.length);
-    for (let i = 0; i < maxLen; i++) {
-        if (i < userBased.length && !seen.has(userBased[i].id)) {
-            seen.add(userBased[i].id);
-            combined.push({ ...userBased[i], source: 'user-based' });
+    // 1. ƯU TIÊN TUYỆT ĐỐI: Sản phẩm cùng danh mục với món hàng mới nhất trong giỏ
+    if (cartItems?.items?.length) {
+        for (const cartItem of cartItems.items) {
+            // Lấy gợi ý cùng danh mục cho từng item (bắt đầu từ item mới nhất do đã orderBy)
+            const categoryRecs = await getCategoryRecommendations(cartItem.productId, topK);
+            for (const p of categoryRecs) {
+                if (!seen.has(p.id) && !cartProductIds.has(p.id)) {
+                    seen.add(p.id);
+                    combined.push({ ...p, source: `category-based-priority-${cartItem.productId}` });
+                    if (combined.length >= topK) break;
+                }
+            }
+            if (combined.length >= topK) break;
+
+            // Nếu vẫn chưa đủ, lấy thêm Item-based (thường mua cùng) của item đó
+            const itemRecs = await getItemBasedRecommendations(cartItem.productId, topK);
+            for (const p of itemRecs) {
+                if (!seen.has(p.id) && !cartProductIds.has(p.id)) {
+                    seen.add(p.id);
+                    combined.push({ ...p, source: `item-based-priority-${cartItem.productId}` });
+                    if (combined.length >= topK) break;
+                }
+            }
+            if (combined.length >= topK) break;
         }
-        if (i < itemBased.length && !seen.has(itemBased[i].id)) {
-            seen.add(itemBased[i].id);
-            combined.push({ ...itemBased[i], source: 'item-based' });
+    }
+
+    // 2. FALLBACK 1: Gợi ý dựa trên lịch sử (User-based)
+    if (combined.length < topK) {
+        for (const p of userBased) {
+            if (!seen.has(p.id) && !cartProductIds.has(p.id)) {
+                seen.add(p.id);
+                combined.push({ ...p, source: p.source || 'user-based' });
+                if (combined.length >= topK) break;
+            }
+        }
+    }
+
+    // 3. FALLBACK 2: Sản phẩm phổ biến
+    if (combined.length < topK) {
+        const popular = await getPopularProducts(topK);
+        for (const p of popular) {
+            if (!seen.has(p.id) && !cartProductIds.has(p.id)) {
+                seen.add(p.id);
+                combined.push({ ...p, source: 'popular' });
+                if (combined.length >= topK) break;
+            }
         }
     }
 
