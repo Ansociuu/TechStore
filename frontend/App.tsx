@@ -456,7 +456,10 @@ const App: React.FC = () => {
               />
             } />
 
-            <Route path="/order-success" element={<OrderSuccess onNavigate={(page) => navigate('/')} />} />
+            <Route path="/order-success" element={<OrderSuccess onNavigate={(page) => {
+              if (page === Page.PROFILE) navigate('/profile');
+              else navigate('/');
+            }} />} />
 
             <Route path="/profile" element={
               user ? (

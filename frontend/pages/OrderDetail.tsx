@@ -74,6 +74,23 @@ export default function OrderDetail({ order: initialOrder, user, onNavigate }: O
     }
   };
 
+  const handleCancelOrder = async () => {
+    if (!currentOrder) return;
+    if (!window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?')) return;
+    try {
+      setIsUpdatingStatus(true);
+      const numericId = typeof currentOrder.id === 'string' ? parseInt(currentOrder.id.replace(/\D/g, '')) : currentOrder.id;
+      await orderAPI.cancel(numericId);
+      setCurrentOrder({ ...currentOrder, status: 'cancelled' });
+      alert('Hủy đơn hàng thành công!');
+    } catch (error: any) {
+      console.error('Failed to cancel order:', error);
+      alert(error.response?.data?.error || 'Có lỗi xảy ra khi hủy đơn hàng');
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
   const getTrackingStep = (status: string) => {
     switch (status) {
       case 'pending': return 0;
@@ -145,6 +162,16 @@ export default function OrderDetail({ order: initialOrder, user, onNavigate }: O
                 <option value="cancelled">Hủy đơn</option>
               </select>
             </div>
+          )}
+          {!isAdmin && currentOrder.status === 'pending' && (
+            <button
+              onClick={handleCancelOrder}
+              disabled={isUpdatingStatus}
+              className="px-5 py-3 rounded-xl bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-red-500 hover:text-white transition-all disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined !text-[18px]">cancel</span>
+              Hủy đơn
+            </button>
           )}
           <button
             onClick={handlePrint}

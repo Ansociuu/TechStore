@@ -137,6 +137,50 @@ router.put('/:id/status', authenticate, requireAdmin, async (req: AuthRequest, r
     }
 });
 
+// Khách hàng tự hủy đơn hàng (chỉ áp dụng cho đơn 'pending')
+router.post('/:id/cancel', authenticate, async (req: AuthRequest, res) => {
+    try {
+        const orderId = Number(req.params.id);
+        const userId = req.userId!;
+
+        const order = await prisma.order.findUnique({
+            where: { id: orderId }
+        });
+
+        if (!order) {
+            return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+        }
+
+        if (order.userId !== userId) {
+            return res.status(403).json({ error: 'Không có quyền hủy đơn hàng này' });
+        }
+
+        if (order.status !== 'pending') {
+            return res.status(400).json({ error: 'Chỉ có thể hủy đơn hàng đang ở trạng thái chờ xử lý' });
+        }
+
+        const updatedOrder = await prisma.order.update({
+            where: { id: orderId },
+            data: { status: 'cancelled' }
+        });
+
+        // Thông báo cho người dùng
+        await prisma.notification.create({
+            data: {
+                userId: updatedOrder.userId,
+                title: 'Hủy đơn hàng thành công',
+                message: `Đơn hàng #${updatedOrder.id} của bạn đã được hủy thành công.`,
+                type: 'order'
+            }
+        });
+
+        res.json(updatedOrder);
+    } catch (error) {
+        console.error('Lỗi khi hủy đơn hàng:', error);
+        res.status(500).json({ error: 'Lỗi server' });
+    }
+});
+
 // Lấy tất cả đơn hàng (Admin only)
 router.get('/admin/all', authenticate, requireAdmin, async (req: AuthRequest, res) => {
     try {

@@ -139,6 +139,10 @@ export const orderAPI = {
         const response = await apiClient.put(`/orders/${id}/status`, { status });
         return response.data;
     },
+    cancel: async (id: number) => {
+        const response = await apiClient.post(`/orders/${id}/cancel`);
+        return response.data;
+    },
     getAllAdmin: async (params: { page?: number; limit?: number } = {}) => {
         const response = await apiClient.get('/orders/admin/all', { params });
         return response.data;
